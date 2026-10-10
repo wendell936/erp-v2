@@ -145,3 +145,15 @@ xss:
   excludes: /system/notice
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*
+
+# 单美国站 SP-API，默认关闭；开启仅装配客户端，不自动请求或同步
+erp:
+  amazon:
+    sp-api:
+      enabled: ${AMAZON_SP_API_ENABLED:false}
+      client-id: ${AMAZON_LWA_CLIENT_ID:}
+      client-secret: ${AMAZON_LWA_CLIENT_SECRET:}
+      refresh-token: ${AMAZON_LWA_REFRESH_TOKEN:}
+      connect-timeout: 10s
+      read-timeout: 30s
+      call-timeout: 45s

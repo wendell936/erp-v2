@@ -11,6 +11,8 @@
 
 ## 平台简介
 
+本项目的 ERP 业务模块见 [erp-business](erp-business/README.md)，实际开发进度见[任务台账](../doc/development/task-board.md)。仓库根目录可执行 `mvn -B -f erp-front/pom.xml verify` 构建并运行已接入的测试；测试入口及当前覆盖边界见[后端测试基线](../doc/testing/backend-test-baseline.md)。运行还需实际数据库/Redis 配置，构建成功不等同应用已启动。
+
 若依是一套全部开源的快速开发平台，毫无保留给个人及企业免费使用。
 
 * 前端采用Vue、Element（提供 Vue2/Vue3/TS 多版本）。

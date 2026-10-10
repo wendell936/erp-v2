@@ -17,6 +17,13 @@
 
     <dependencies>
 
+        <!-- 测试工具，仅用于测试，不打入运行包 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- SpringBoot Web容器 -->
          <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -61,4 +68,15 @@
 
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <failIfNoTests>true</failIfNoTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

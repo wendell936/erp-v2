@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>ruoyi</artifactId>
+        <groupId>com.ruoyi</groupId>
+        <version>3.9.2</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>erp-business</artifactId>
+    <description>ERP 业务模块</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.spapi</groupId>
+            <artifactId>spapi-sdk</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.swagger.core.v3</groupId>
+                    <artifactId>swagger-annotations</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations-jakarta</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- 认证适配需直接使用 SDK 的 HTTP 实现及 JSON 解析器 -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <failIfNoTests>true</failIfNoTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -32,6 +32,8 @@ RuoYi-Vue 前端项目的三个主要演进版本，方便你直观对比其技�
 
 ## 前端运行
 
+本项目 ERP 开发进度见[任务台账](../doc/development/task-board.md)。仓库根目录可执行 `npm --prefix erp-back install --no-audit --no-fund` 安装现有依赖，执行 `npm --prefix erp-back run build:prod` 验证生产构建。具体执行结果及未验证项见[开发执行记录](../doc/development/execution-journal.md)；安装成功不等同页面联调通过。
+
 ```bash
 # 克隆项目
 git clone https://github.com/yangzongzhuan/RuoYi-Vue3.git
