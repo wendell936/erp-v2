@@ -9,6 +9,7 @@ export ERP_LOGIN_TEST_REDIS_CONTAINER="${ERP_MIGRATION_TEST_CONTAINER}-redis"
 export MYSQL_ROOT_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(24))')"
 export ERP_MIGRATION_TEST_PASSWORD="$MYSQL_ROOT_PASSWORD"
 export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
+export ERP_TEST_DOCKER_HOST="unix:///var/run/docker.sock"
 docker_local() {
     env -u DOCKER_HOST -u DOCKER_CONTEXT -u DOCKER_TLS -u DOCKER_TLS_VERIFY -u DOCKER_CERT_PATH \
         docker --host=unix:///var/run/docker.sock "$@"

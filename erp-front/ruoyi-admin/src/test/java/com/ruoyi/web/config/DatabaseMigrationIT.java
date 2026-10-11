@@ -252,10 +252,18 @@ class DatabaseMigrationIT
     {
         String container = required("ERP_MIGRATION_TEST_CONTAINER");
         assertTrue(container.matches("erp-v2-migration-it-[a-zA-Z0-9-]+"));
+        String dockerHost = System.getenv("ERP_TEST_DOCKER_HOST");
+        if (dockerHost == null || dockerHost.isBlank())
+        {
+            dockerHost = "unix:///var/run/docker.sock";
+        }
+        // 测试备份只能调用本机 Docker，不接受远程 daemon。
+        assertTrue(dockerHost.equals("unix:///var/run/docker.sock")
+                || dockerHost.equals("npipe:////./pipe/dockerDesktopLinuxEngine"));
         ProcessBuilder builder = restore
-                ? new ProcessBuilder("docker", "--host=unix:///var/run/docker.sock", "exec", "-i",
+                ? new ProcessBuilder("docker", "--host=" + dockerHost, "exec", "-i",
                         "-e", "MYSQL_PWD", container, "mysql", "-uroot", schema)
-                : new ProcessBuilder("docker", "--host=unix:///var/run/docker.sock", "exec",
+                : new ProcessBuilder("docker", "--host=" + dockerHost, "exec",
                         "-e", "MYSQL_PWD", container, "mysqldump", "-uroot", "--single-transaction",
                         "--skip-lock-tables", "--set-gtid-purged=OFF", "--no-tablespaces", schema);
         builder.environment().put("MYSQL_PWD", password);

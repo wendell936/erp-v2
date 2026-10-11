@@ -69,7 +69,7 @@
               <span>{{ parseTime(scope.row.createTime) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
+          <el-table-column label="操作" align="center" width="230" class-name="small-padding fixed-width">
             <template #default="scope">
               <el-tooltip content="修改" placement="top" v-if="scope.row.userId !== 1">
                 <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:user:edit']"></el-button>
@@ -83,6 +83,7 @@
               <el-tooltip content="分配角色" placement="top" v-if="scope.row.userId !== 1">
                 <el-button link type="primary" icon="CircleCheck" @click="handleAuthRole(scope.row)" v-hasPermi="['system:user:edit']"></el-button>
               </el-tooltip>
+              <el-button link type="primary" :loading="unlockingUserIds.includes(scope.row.userId)" :disabled="unlockingUserIds.includes(scope.row.userId)" @click="handleUnlock(scope.row)" v-hasPermi="['system:user:unlock']">解除锁定</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -189,7 +190,7 @@ import TreePanel from "@/components/TreePanel"
 import ExcelImportDialog from "@/components/ExcelImportDialog"
 import UserViewDrawer from "./view"
 import { usePasswordRule } from "@/utils/passwordRule"
-import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from "@/api/system/user"
+import { changeUserStatus, listUser, resetUserPwd, unlockUser, delUser, getUser, updateUser, addUser, deptTreeSelect } from "@/api/system/user"
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
@@ -211,6 +212,7 @@ const enabledDeptOptions = ref(undefined)
 const initPassword = ref(undefined)
 const postOptions = ref([])
 const roleOptions = ref([])
+const unlockingUserIds = ref([])
 // 列显隐信息
 const columns = ref({
   userId: { label: '用户编号', visible: true },
@@ -322,6 +324,25 @@ function handleStatusChange(row) {
   }).catch(function () {
     row.status = row.status === "0" ? "1" : "0"
   })
+}
+
+/** 解除密码失败的临时锁定 */
+async function handleUnlock(row) {
+  if (unlockingUserIds.value.includes(row.userId)) return
+  unlockingUserIds.value.push(row.userId)
+  try {
+    try {
+      await proxy.$modal.confirm(`确认解除「${row.userName}」的登录临时锁定？仅清除密码失败次数，不修改密码，停用账号仍保持停用。`)
+    } catch {
+      return
+    }
+    await unlockUser(row.userId)
+    proxy.$modal.msgSuccess(row.status === "1" ? "临时锁定已解除，账号仍为停用状态" : "临时锁定已解除")
+  } catch {
+    // 请求封装统一显示服务端或网络错误，保留当前列表以便重试。
+  } finally {
+    unlockingUserIds.value = unlockingUserIds.value.filter(userId => userId !== row.userId)
+  }
 }
 
 /** 更多操作 */

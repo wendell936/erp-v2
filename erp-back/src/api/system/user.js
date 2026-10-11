@@ -57,6 +57,14 @@ export function resetUserPwd(userId, password) {
   })
 }
 
+// 清除密码失败次数及临时锁定，不修改密码或账号状态
+export function unlockUser(userId) {
+  return request({
+    url: '/system/user/unlock/' + userId,
+    method: 'put'
+  })
+}
+
 // 用户状态修改
 export function changeUserStatus(userId, status) {
   const data = {

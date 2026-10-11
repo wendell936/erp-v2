@@ -1,6 +1,6 @@
 ## ERP 开发验证与环境配置
 
-从仓库根目录运行 `mvn -B -f erp-front/pom.xml verify`。数据库集成测试运行 `scripts/test-database-migrations.sh`，需要本机 Docker、Python 3、Maven 和依赖获取条件；可用 `ERP_MAVEN_BIN`、`ERP_MAVEN_SETTINGS` 指定工具和 settings。脚本自动生成临时凭据、创建 loopback MySQL 与 Redis，测试后删除本轮容器；无需真实业务库。日志按任务放 `logs/P0-12/`、`logs/P0-16/` 或 `logs/P0-17/`，均不提交。普通 verify 不执行需要 Docker 的 `*IT`；显式 `-Pmigration-it` 缺少测试连接配置时失败，不静默跳过。
+从仓库根目录运行 `mvn -B -f erp-front/pom.xml verify`。数据库集成测试在 Linux 运行 `scripts/test-database-migrations.sh`（需要 Python 3），Windows PowerShell 运行 `./scripts/test-database-migrations.ps1`（Docker Desktop Linux engine）；两者均需要本机 Docker、Maven 和依赖获取条件，可用 `ERP_MAVEN_BIN`、`ERP_MAVEN_SETTINGS` 指定工具和 settings。脚本自动生成临时凭据、创建 loopback MySQL 与 Redis，测试后删除本轮容器；无需真实业务库。日志按任务放 `logs/`，本地临时验收放 `.local/logs/<任务ID>/`，均不提交。普通 verify 不执行需要 Docker 的 `*IT`；显式 `-Pmigration-it` 缺少测试连接配置时失败，不静默跳过。
 
 应用启动前必须安全注入 `ERP_DB_URL`、`ERP_DB_USERNAME`、`ERP_DB_PASSWORD`、`ERP_TOKEN_SECRET`。令牌密钥需为至少 64 字节随机数据的 Base64 编码，可在安全配置中生成，禁止入库或输出日志；更换密钥会使现有登录令牌失效。移除原演示数据库密码和令牌密钥后，缺失配置会在创建服务前阻断启动，不能沿用此前无配置的演示启动方式。
 

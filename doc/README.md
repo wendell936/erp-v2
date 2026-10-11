@@ -19,6 +19,8 @@
 - [发布、日志与恢复规范](operations/release-and-recovery.md)：发布流程、日志管理和恢复验证。
 - [首个业务闭环验收基准](testing/first-business-loop.md)：固定测试数据、预期结果和必要回归场景。
 - [后端测试基线](testing/backend-test-baseline.md)：JUnit 执行入口、测试依赖及当前认证用例的覆盖边界。
+- [管理员解除临时锁定页面验收](testing/account-unlock-ui.md)：行内解锁、合成 API 浏览器验收及真实联调待验收项。
+- [领星交互观察记录](development/lingxing-interaction-reference.md)：本地账号、商品测试样例、采购列表观察与必要业务差异。
 
 ## 放置约定
 
