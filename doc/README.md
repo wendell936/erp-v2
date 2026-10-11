@@ -2,10 +2,14 @@
 
 ## 当前文档
 
+- [云端接续记录](development/cloud-continuation.md)：版本同步及本月 CI 限制。
+- [数据库迁移技术决策](architecture/database-migration-decision.md)：Flyway、唯一脚本来源、主库装配、显式基线和恢复。
+
 - [项目开发约定](../AGENTS.md)：企业级开发原则、业务边界、质量要求和工作空间管理规则。
 - [业务需求基线](requirements/requirements-checklist.md)：Amazon ERP 的业务目标、流程、规则、推进重点及范围外事项。
 - [需求与验收规范](requirements/requirements-workflow.md)：需求描述、变更和完成标准。
 - [业务术语、编码与单据规范](business/business-conventions.md)：库存术语、编码和单据纠错边界。
+- [账号权限与业务数据范围](business/access-control-matrix.md)：已确认的管理员、操作和只读角色矩阵。
 - [编码、数据与接口规范](development/engineering-standards.md)：分层、建模、接口、Git 和环境隔离。
 - [ERP 分阶段开发计划](development/development-plan.md)：现有框架评估、ERP 模块组织、阶段依赖、SP-API 对接及验收安排。
 - [开发任务台账](development/task-board.md)：细任务 ID、依赖、状态、验收条件和待确认项，跟进进度的入口。

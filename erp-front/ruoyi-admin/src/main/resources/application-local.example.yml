@@ -1,0 +1,21 @@
+# 配置样例，不会自动加载。复制到 .local/config/application-local.yml 并安全注入环境变量。
+spring:
+  datasource:
+    druid:
+      master:
+        url: ${ERP_DB_URL}
+        username: ${ERP_DB_USERNAME}
+        password: ${ERP_DB_PASSWORD}
+      stat-view-servlet:
+        enabled: false
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: ${ERP_REDIS_HOST:localhost}
+      port: ${ERP_REDIS_PORT:6379}
+      password: ${ERP_REDIS_PASSWORD:}
+token:
+  secret: ${ERP_TOKEN_SECRET}
+ruoyi:
+  profile: ${ERP_UPLOAD_PATH:.local/uploads}

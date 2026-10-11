@@ -59,7 +59,7 @@ public class GenController extends BaseController
     @GetMapping("/list")
     public TableDataInfo genList(GenTable genTable)
     {
-        startPage();
+        startPage("", "table_id");
         List<GenTable> list = genTableService.selectGenTableList(genTable);
         return getDataTable(list);
     }
@@ -88,7 +88,7 @@ public class GenController extends BaseController
     @GetMapping("/db/list")
     public TableDataInfo dataList(GenTable genTable)
     {
-        startPage();
+        startPage("create_time desc", "table_name");
         List<GenTable> list = genTableService.selectDbTableList(genTable);
         return getDataTable(list);
     }

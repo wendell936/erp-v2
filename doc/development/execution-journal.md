@@ -149,3 +149,58 @@
 - 已执行用户授权的本地提交：`557a1f21331b6bc8245997a66cbcd2d3010aff13`，标题 `feat: establish ERP baseline and SP-API integration (P0-01 to P0-21)`，33 个文件；标题中任务范围表示关联范围，未完成项继续以任务台账为准。
 - 对应成果：工程/追溯基线 P0-01/02/03/04/05/08/13，以及官方 SDK/认证适配 P0-20/21。数据库及真实店铺对接没有因提交自动标记完成。
 - 提交后 `git status --short` 无输出；本条为随后追加的哈希追溯记录，单独以文档提交入库。没有推送、部署或真实 Amazon 调用。
+
+## 2026-10-11 / E020：云端接续及分页边界
+
+- 用户授权继续后续任务，并确认本月 GitHub CI 额度用完；本轮全部验证在云端开发环境执行，不触发 Actions，不推送或创建 PR。用户另确认远端 master 为 `b17fc6c0da5b90566855b86ba91e9fbd41761adc`、工作流运行数 0。
+- P0-06：云端 `/workspace/erp-v2` 已快进同步到该提交，保留本轮接续文档并解决索引冲突；Docker 28.4.0、Java 21.0.12.1、Node 与 Maven 3.9.11 可用。Maven 临时安装及 settings 位于 `.local/tools/`，不入库。Java 17 实际运行仍未验证。
+- P0-07：新建独立 MySQL 8.4.11 空库 `erp_test` 和 Redis 7.4.11，版本查询成功、表数 0、PING 为 PONG。MySQL 无网络、无映射端口或宿主数据卷，仅 docker exec 访问；Redis 无映射端口。未接入真实业务数据或外部数据库。
+- 基线验证：`mvn -o -B -Dmaven.repo.local=/workspace/.cache/maven -f erp-front/pom.xml verify` 因缓存来源 ID 不匹配退出 1；调整临时镜像 ID 并沿用会话代理后，`mvn -B -s .local/tools/maven-settings.xml -f erp-front/pom.xml verify` 退出 0，8 模块成功。日志 `.local/logs/P0-06/backend-verify.log`、`backend-verify-recovery.log`。
+- P0-18 拆为 P0-18.a 请求分页边界、P0-18.b 列表稳定排序，更新 P1-04 的前置依赖。TableSupport 保留默认每页 10 条、上限 100 条，非正页号归 1、非正条数归 10，参数溢出沿用解析默认值，避免 pageSize=0 关闭分页。新增 3 项请求到 PageHelper 的测试，涵盖 9 组边界输入。
+- 首次分页完整验证在默认沙箱失败：新增 3 项测试通过，但原 5 项密码测试因 Mockito 无法动态附加代理报错；未将此标为代码失败或完整验证通过。日志 `.local/logs/P0-06/backend-pagination.log`。按已成功基线的命令权限恢复后重新验证，结果随后追加。
+- 最终恢复验证：相同离线 verify 在允许本机代理附加所需网络权限下退出 0，8 模块成功；33 项测试，失败 0、错误 0、跳过 0。日志 `.local/logs/P0-06/backend-pagination-recovery.log`，SHA256 `abf0d6127dbfe0f6b92a7e2d6eb8ca04a4c31492a16afc04064cb11f17fdbaf0`。P0-18.a 已完成；P0-18.b 稳定排序、P0-09 迁移工具兼容与恢复验证仍待推进。
+
+## 2026-10-11 / E021：迁移接入、隔离测试与环境配置
+
+- 用户授权按台账自动推进，仅在需确认/协助时询问；本轮不使用 GitHub CI，不提交、推送或部署。P0-09～12、P0-14 开始实施。
+- 在入口模块接入 BOM 管理的 Flyway 12.4.0，静态核对 parent POM 的 Apache-2.0；未运行完整漏洞扫描。唯一迁移资源目录打入后端包，原若依/Quartz SQL 移动为两个基线，移除初始化 DROP。默认关闭，显式启用后固定物理主库，拒绝自动 baseline/clean/乱序，验证名称、校验值和未来版本；MyBatis 依赖数据库初始化。
+- 首次候选依赖构建通过：`mvn -B -s .local/tools/maven-settings.xml -f erp-front/pom.xml verify`，退出 0，日志 `logs/P0-09/flyway-build.log`。
+- 独立入口 `scripts/test-database-migrations.sh` 创建随机凭据、loopback 临时 MySQL 与随机库，退出清理容器。最初重定向到尚未创建的日志目录退出 1，未创建容器；补目录恢复。
+- 失败/恢复：Flyway 空参数的重载歧义导致编译失败，明确传 `new String[0]`；日志 `logs/P0-12/migration-it.log`。Failsafe 使用 Boot 重打包 JAR 导致类/资源缺失，指定编译输出目录；日志 `migration-it-recovery.log`。Druid/MyBatis 集成用例的别名未包含公共实体，改用应用原 `com.ruoyi.**.domain` 配置；日志 `migration-it-classpath.log`。
+- 首轮真实迁移验收：日志 `logs/P0-12/migration-it-final.log`，退出 0，8 模块成功，6 项 MySQL 集成与新增 2 项配置测试通过。真实 mysqldump 备份恢复保留合成记录，失败 DDL 保留部分表及失败历史，后续迁移与重试阻断；恢复备份后重新验证并执行修正后的未成功迁移。没有自动 repair 或改成功脚本。
+- 测试发现硬编码日志目录 `/home/ruoyi/logs` 无写权限：改为 `ERP_LOG_PATH`，默认 `logs/erp-front`。继续 P0-19：主库连接与令牌密钥由环境注入，移除演示凭据；Druid 控制台默认关闭，启用需独立凭据；增加不自动加载的环境样例。启动前只报告配置名，不输出密码；HS512 密钥检查 Base64 与至少 64 字节长度。Redis/上传/日志均可环境配置。缺失配置现会阻断启动，已更新后端说明。
+- 增加真实 MySQL 事务回滚与提交用例作为 P0-14 入口；后续具体业务事务仍按业务任务验证，不提前标为库存/财务验收。最终含安全配置与事务用例的回归结果随后追加。
+- 最终验证：通过 `scripts/test-database-migrations.sh`（指定临时 Maven/settings），退出 0，8 模块成功，46 项测试（39 单元/组件 + 7 MySQL 集成），失败/错误/跳过均为 0。日志 `logs/P0-12/migration-and-config.log`，SHA256 `ce981739da1efaa65e74e9d1fa0ddb8962d60aff75e0f4f88bd3224472a45bec`。运行包含两个 SQL、Flyway core/mysql 12.4.0，不含测试库；SQL 无初始化 DROP。本轮测试容器已由退出钩子删除。P0-09/10/11/12/14/19 已完成当前工程验收；真实既有库、Java 17、完整应用登录及部署仍未验收。
+
+## 2026-10-11 / E022：登录组件边界与待确认权限
+
+- P0-16 拆为 P0-16.a 组件边界、P0-16.b 真实 Redis/HTTP 验收；更新 P0-17 前置。原 5 项密码边界继续复用，新增 5 项验证码与停用/删除账号用例。发现 `validateCaptcha` 对缺失 code 调用 equalsIgnoreCase 会空指针，改为验证码业务错误；错误/缺失/过期均不会进入密码认证。
+- 初次 verify 因新增用例漏验证一次 Redis 读取导致 `verifyNoMoreInteractions` 失败，补齐交互断言后恢复；不是业务实现失败。日志 `logs/P0-16/login-boundaries.log`、`login-boundaries-recovery.log`，结果随后追加。真实 Redis TTL、HTTP 登录及并发计数仍未验收。
+- P0-15 仍待用户确认业务数据范围及成本/利润/资金访问边界，已通过问题工具询问；未自行授予业务权限。
+- 登录组件最终 verify 退出 0，8 模块成功、44 项单元/组件测试无失败/错误/跳过；日志 `logs/P0-16/login-boundaries-recovery.log`，SHA256 `b0f4ba637d3e4c4268e4498f7cde4363e5329dad6efa6b7f1834fea2f98139bb`。此前 7 项 MySQL 集成测试已独立通过，本次未修改迁移实现或重跑数据库用例。P0-16.a 完成。
+
+## 2026-10-11 / E023：权限范围已确认
+
+- 用户确认操作、只读人员均可查看全公司业务数据，操作人员可办理业务，只读人员不可修改；成本、利润、资金不另设读取限制。已建立 `doc/business/access-control-matrix.md` 并挂索引，P0-15 完成矩阵确认。
+- 具体账号、角色、菜单和业务接口尚未因此自动授权；后续仍逐项实现、验证。P0-17 管理解锁依赖真实登录集成，P0-16.b 保留待开始。
+
+## 2026-10-11 / E024：真实登录、管理员解锁与稳定分页
+
+- P0-16.b 使用完整应用及临时 MySQL/Redis 验证 HTTP 验证码、五次锁定、真实 Redis TTL 到期、成功清零和停用拒绝，日志 `logs/P0-16/login-http-redis-password.log`，退出 0。此前 JUnit instance TempDir 在 BeforeAll 尚未注入改为 static，日志 `login-http-redis.log`；合成测试密码超出原 20 字符上限，改为符合原规则，日志 `login-http-redis-recovery.log`。未为测试放宽密码规则；TTL 用测试配置 1 分钟并显式缩短缓存等待，应用默认 10 分钟不变。
+- P0-17.a 开始：通过用户确认的矩阵，注册 `system:user:unlock` 增量权限，仅给有效管理员角色；接口检查后端权限、目标数据范围与存在/删除状态，清除指定密码失败缓存，不改密码或状态，沿用审计注解。前端 P0-17.b 需按工程规范先查看领星交互，已请求参考链接/说明及安全账号配置，尚未实施。
+- 代码核对发现读后覆盖的密码失败计数会丢更新、使用用户输入账号名可形成大小写不同锁定键；改用数据库账号名，Lua 原子递增并到上限不续期，成功请求原子检查未锁定后清零，不能清除并发锁定。真实 8 并发失败计数达到且不超过 5，只读 HTTP 解锁被拒绝，管理员解锁及再次解锁成功，停用账号不会自动启用。
+- 首次 Lua 测试失败：原 FastJson 序列化 Long 的类名后缀不能作为 Lua 数值参数；为脚本明确采用字符串参数序列化，未更换业务缓存格式，恢复后通过。日志 `logs/P0-17/unlock-and-concurrency.log`、`unlock-and-concurrency-serializer.log`。
+- 验证码读后删也有并发重用窗口，改为 Spring Data Redis 的原子 getAndDelete（Redis 6.2+），保留错误验证码消费与缺失业务错误规则；当前实际 Redis 7.4.11。
+- P0-18.b 逐项核对系统、监控、调度、生成器共 16 个分页查询的表别名、唯一键及原默认排序。增加 PageUtils/BaseController 受控稳定排序入口，客户端排序后仍追加服务器唯一键，保留角色顺序、字典顺序、通知/日志倒序等原业务排序；没有原排序的列表明确按主键排序。新增排序及注入拒绝用例。
+- 通过临时库 103 条同名账号和实际 HTTP 验证跨页按唯一键顺序、pageSize=1000 仅取 100、pageSize=0 返回 10；16 个分页端点均查询成功。`logs/P0-18/stable-pagination.log` 退出 0，8 模块成功。并发增删下 offset 分页不承诺快照一致性。最终并发验证码消费及解锁审计回归随后追加。
+- P1-01 的真实首套商品/组件/单位/SKU 已询问用户，尚待资料；不自行发明 SKU 词典或单位换算。
+
+- 最终回归：`scripts/test-database-migrations.sh`（指定本地 Maven 与 settings）退出 0，8 模块 BUILD SUCCESS；48 项单元测试、8 项真实数据库/HTTP 集成测试，共 56 项，失败、错误、跳过均为 0。包含并发验证码仅消费一次、只读解锁拒绝、真实解锁审计、停用账号解锁后仍拒绝登录、16 个分页端点及迁移恢复。日志 `logs/P0-17/final-stage-zero.log`，SHA256 `a13476a8ed44adf9568d3325272f953f674bb120d04549102fa957025d5cb147`。P0-17.a、P0-18.b 完成；P0-17.b 页面尚未实施，不代表阶段 0 全部完成。未提交、推送或触发 Actions。
+- 用户补充 P1-01：成品哥特风生日礼品袋，组件贺卡、雪梨纸、纸袋、丝带；用量、单位及 SKU 待补充。用户提供领星登录入口并说明内置浏览器已登录，正在核对本会话浏览器访问能力。
+- 浏览器访问核对：当前工具仅可打开 Codex 内置标签，不能读取该标签 DOM 或会话；远程浏览器 Default 档案无登录站点记录。未尝试复用或导出 Cookie，未进入未授权的其他账户。已请求交互说明或远程安全登录方式；P0-17.b、P0-26 继续待参考资料。
+
+## 2026-10-11 / E025：首套组件用量与参考登录接续
+
+- P1-01：用户确认每套雪梨纸 3 张、贺卡 1 张、纸袋 1 个、丝带 2 根；更新业务约定，保留原单位，不推断丝带长度。已有 SKU 及编码/采购换算尚未提供，任务继续待确认。
+- P0-17.b/P0-26：用户选择在远程浏览器另行登录，已调用现有 Default 档案的安全登录入口；登录状态由用户在入口保存，不将密码或 Cookie 写入仓库。此次仅业务文档更新，不重复执行无关代码测试，不触发 Actions。
+- 用户反馈远程登录卡顿，要求尝试直接使用浏览器。已重新核对当前工具与云端进程：无可读取/点击桌面内置浏览器的接口，无本地浏览器进程；仅能调用打开内置标签工具。已尝试打开领星入口，不把打开标签视为已查看参考页面。已向用户解释 SKU 为内部商品唯一编号，尚未确认是否已有编码。

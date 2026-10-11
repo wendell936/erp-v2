@@ -44,7 +44,8 @@ public class SysPasswordService
     public void validate(SysUser user)
     {
         Authentication usernamePasswordAuthenticationToken = AuthenticationContextHolder.getContext();
-        String username = usernamePasswordAuthenticationToken.getName();
+        // 使用数据库账号名，大小写/尾部空格不同的输入不得绕过同一账号锁定。
+        String username = user.getUserName();
         String password = usernamePasswordAuthenticationToken.getCredentials().toString();
 
         Integer retryCount = redisCache.getCacheObject(getCacheKey(username));
@@ -61,13 +62,15 @@ public class SysPasswordService
 
         if (!matches(user, password))
         {
-            retryCount = retryCount + 1;
-            redisCache.setCacheObject(getCacheKey(username), retryCount, lockTime, TimeUnit.MINUTES);
+            redisCache.incrementWithLimit(getCacheKey(username), maxRetryCount, lockTime, TimeUnit.MINUTES);
             throw new UserPasswordNotMatchException();
         }
         else
         {
-            clearLoginRecordCache(username);
+            if (!redisCache.deleteBelowLimit(getCacheKey(username), maxRetryCount))
+            {
+                throw new UserPasswordRetryLimitExceedException(maxRetryCount, lockTime);
+            }
         }
     }
 
@@ -78,9 +81,6 @@ public class SysPasswordService
 
     public void clearLoginRecordCache(String loginName)
     {
-        if (redisCache.hasKey(getCacheKey(loginName)))
-        {
-            redisCache.deleteObject(getCacheKey(loginName));
-        }
+        redisCache.deleteObject(getCacheKey(loginName));
     }
 }

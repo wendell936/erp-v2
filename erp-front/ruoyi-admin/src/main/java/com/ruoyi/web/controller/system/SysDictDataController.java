@@ -44,7 +44,7 @@ public class SysDictDataController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(SysDictData dictData)
     {
-        startPage();
+        startPage("dict_sort asc", "dict_code");
         List<SysDictData> list = dictDataService.selectDictDataList(dictData);
         return getDataTable(list);
     }

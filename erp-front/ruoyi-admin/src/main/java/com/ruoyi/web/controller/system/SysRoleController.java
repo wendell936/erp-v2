@@ -57,7 +57,7 @@ public class SysRoleController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(SysRole role)
     {
-        startPage();
+        startPage("r.role_sort", "r.role_id");
         List<SysRole> list = roleService.selectRoleList(role);
         return getDataTable(list);
     }
@@ -188,7 +188,7 @@ public class SysRoleController extends BaseController
     @GetMapping("/authUser/allocatedList")
     public TableDataInfo allocatedList(SysUser user)
     {
-        startPage();
+        startPage("", "u.user_id");
         List<SysUser> list = userService.selectAllocatedList(user);
         return getDataTable(list);
     }
@@ -200,7 +200,7 @@ public class SysRoleController extends BaseController
     @GetMapping("/authUser/unallocatedList")
     public TableDataInfo unallocatedList(SysUser user)
     {
-        startPage();
+        startPage("", "u.user_id");
         List<SysUser> list = userService.selectUnallocatedList(user);
         return getDataTable(list);
     }

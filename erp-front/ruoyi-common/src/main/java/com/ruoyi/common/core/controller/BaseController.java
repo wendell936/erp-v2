@@ -55,6 +55,12 @@ public class BaseController
         PageUtils.startPage();
     }
 
+    /** 请求排序后追加服务端唯一键，保持同值记录跨页顺序稳定。 */
+    protected void startPage(String defaultOrderBy, String uniqueOrderBy)
+    {
+        PageUtils.startPage(defaultOrderBy, uniqueOrderBy);
+    }
+
     /**
      * 设置请求排序数据
      */

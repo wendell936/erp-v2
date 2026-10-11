@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.BoundSetOperations;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,6 +24,59 @@ import org.springframework.stereotype.Component;
 @Component
 public class RedisCache
 {
+    private static final DefaultRedisScript<Long> BOUNDED_INCREMENT = new DefaultRedisScript<>(
+            "local count = tonumber(redis.call('GET', KEYS[1]) or '0'); "
+            + "if count >= tonumber(ARGV[1]) then return count; end; "
+            + "count = redis.call('INCR', KEYS[1]); "
+            + "redis.call('EXPIRE', KEYS[1], ARGV[2]); return count;", Long.class);
+
+    private static final DefaultRedisScript<Long> DELETE_BELOW_LIMIT = new DefaultRedisScript<>(
+            "local count = tonumber(redis.call('GET', KEYS[1]) or '0'); "
+            + "if count >= tonumber(ARGV[1]) then return 0; end; "
+            + "redis.call('DEL', KEYS[1]); return 1;", Long.class);
+
+    /** 原子递增至上限并设置到期时间；已到上限不延长锁定窗口。 */
+    public long incrementWithLimit(String key, long maximum, long timeout, TimeUnit unit)
+    {
+        long seconds = unit.toSeconds(timeout);
+        if (maximum < 1 || seconds < 1)
+        {
+            throw new IllegalArgumentException("递增上限与到期时间必须为正数");
+        }
+        Long result = (Long) redisTemplate.execute(BOUNDED_INCREMENT,
+                new org.springframework.data.redis.serializer.StringRedisSerializer(),
+                redisTemplate.getValueSerializer(), java.util.Collections.singletonList(key),
+                Long.toString(maximum), Long.toString(seconds));
+        if (result == null)
+        {
+            throw new IllegalStateException("Redis 原子计数未返回结果");
+        }
+        return result;
+    }
+
+    /** 仅未达到上限时清除计数，避免并发成功请求清除已触发的锁定。 */
+    public boolean deleteBelowLimit(String key, long maximum)
+    {
+        if (maximum < 1)
+        {
+            throw new IllegalArgumentException("计数上限必须为正数");
+        }
+        Long result = (Long) redisTemplate.execute(DELETE_BELOW_LIMIT,
+                new org.springframework.data.redis.serializer.StringRedisSerializer(),
+                redisTemplate.getValueSerializer(), java.util.Collections.singletonList(key), Long.toString(maximum));
+        if (result == null)
+        {
+            throw new IllegalStateException("Redis 原子清除未返回结果");
+        }
+        return result == 1;
+    }
+
+    /** 原子获取并消费一次性值（Redis 6.2+），避免同一验证码并发重用。 */
+    public <T> T getAndDeleteCacheObject(String key)
+    {
+        return (T) redisTemplate.opsForValue().getAndDelete(key);
+    }
+
     @Autowired
     public RedisTemplate redisTemplate;
 

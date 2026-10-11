@@ -31,6 +31,7 @@ import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysPostService;
 import com.ruoyi.system.service.ISysRoleService;
 import com.ruoyi.system.service.ISysUserService;
+import com.ruoyi.framework.web.service.SysPasswordService;
 
 /**
  * 用户信息
@@ -41,6 +42,25 @@ import com.ruoyi.system.service.ISysUserService;
 @RequestMapping("/system/user")
 public class SysUserController extends BaseController
 {
+    @Autowired
+    private SysPasswordService passwordService;
+
+    /** 只解除密码失败的临时锁定，不改变账号停用/删除状态或密码。 */
+    @PreAuthorize("@ss.hasPermi('system:user:unlock')")
+    @Log(title = "解除账号临时锁定", businessType = BusinessType.UPDATE)
+    @PutMapping("/unlock/{userId}")
+    public AjaxResult unlock(@PathVariable Long userId)
+    {
+        userService.checkUserDataScope(userId);
+        SysUser user = userService.selectUserById(userId);
+        if (user == null || "2".equals(user.getDelFlag()))
+        {
+            return error("账号不存在或已删除");
+        }
+        passwordService.clearLoginRecordCache(user.getUserName());
+        return success();
+    }
+
     @Autowired
     private ISysUserService userService;
 
@@ -60,7 +80,7 @@ public class SysUserController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(SysUser user)
     {
-        startPage();
+        startPage("", "u.user_id");
         List<SysUser> list = userService.selectUserList(user);
         return getDataTable(list);
     }

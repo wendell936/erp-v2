@@ -50,6 +50,7 @@ class SysPasswordServiceTest
         user = new SysUser();
         user.setUserName(USERNAME);
         user.setPassword(encodedPassword);
+        when(redisCache.deleteBelowLimit(CACHE_KEY, 5)).thenReturn(true);
     }
 
     @AfterEach
@@ -65,7 +66,7 @@ class SysPasswordServiceTest
 
         assertThrows(UserPasswordNotMatchException.class, () -> passwordService.validate(user));
 
-        verify(redisCache).setCacheObject(CACHE_KEY, 1, 10, TimeUnit.MINUTES);
+        verify(redisCache).incrementWithLimit(CACHE_KEY, 5, 10, TimeUnit.MINUTES);
         verify(redisCache, never()).deleteObject(CACHE_KEY);
     }
 
@@ -77,7 +78,7 @@ class SysPasswordServiceTest
 
         assertThrows(UserPasswordNotMatchException.class, () -> passwordService.validate(user));
 
-        verify(redisCache).setCacheObject(CACHE_KEY, 5, 10, TimeUnit.MINUTES);
+        verify(redisCache).incrementWithLimit(CACHE_KEY, 5, 10, TimeUnit.MINUTES);
     }
 
     @Test
@@ -89,19 +90,38 @@ class SysPasswordServiceTest
         assertThrows(UserPasswordRetryLimitExceedException.class, () -> passwordService.validate(user));
 
         verify(redisCache, never()).deleteObject(CACHE_KEY);
-        verify(redisCache, never()).setCacheObject(CACHE_KEY, 6, 10, TimeUnit.MINUTES);
+        verify(redisCache, never()).incrementWithLimit(CACHE_KEY, 5, 10, TimeUnit.MINUTES);
+        verify(redisCache, never()).deleteBelowLimit(CACHE_KEY, 5);
     }
 
     @Test
     void successfulPasswordBeforeLockClearsFailureCount()
     {
         when(redisCache.<Integer>getCacheObject(CACHE_KEY)).thenReturn(4);
-        when(redisCache.hasKey(CACHE_KEY)).thenReturn(true);
         authenticateWith(PASSWORD);
 
         assertDoesNotThrow(() -> passwordService.validate(user));
 
-        verify(redisCache).deleteObject(CACHE_KEY);
+        verify(redisCache).deleteBelowLimit(CACHE_KEY, 5);
+    }
+
+    @Test
+    void accountIdentityUsesStoredNameInsteadOfInputCase()
+    {
+        AuthenticationContextHolder.setContext(new UsernamePasswordAuthenticationToken(
+                USERNAME.toUpperCase(), "incorrect-password"));
+        assertThrows(UserPasswordNotMatchException.class, () -> passwordService.validate(user));
+        verify(redisCache).incrementWithLimit(CACHE_KEY, 5, 10, TimeUnit.MINUTES);
+    }
+
+    @Test
+    void concurrentLockCannotBeClearedBySuccessfulPassword()
+    {
+        when(redisCache.<Integer>getCacheObject(CACHE_KEY)).thenReturn(4);
+        when(redisCache.deleteBelowLimit(CACHE_KEY, 5)).thenReturn(false);
+        authenticateWith(PASSWORD);
+        assertThrows(UserPasswordRetryLimitExceedException.class, () -> passwordService.validate(user));
+        verify(redisCache, never()).deleteObject(CACHE_KEY);
     }
 
     @Test
@@ -112,7 +132,7 @@ class SysPasswordServiceTest
 
         assertDoesNotThrow(() -> passwordService.validate(user));
 
-        verify(redisCache, never()).deleteObject(CACHE_KEY);
+        verify(redisCache).deleteBelowLimit(CACHE_KEY, 5);
     }
 
     private void authenticateWith(String password)

@@ -1,7 +1,7 @@
+-- 仅用于空库首次初始化；既有库须预检后显式 baseline，不可重放。
 -- ----------------------------
 -- 1、部门表
 -- ----------------------------
-drop table if exists sys_dept;
 create table sys_dept (
   dept_id           bigint(20)      not null auto_increment    comment '部门id',
   parent_id         bigint(20)      default 0                  comment '父部门id',
@@ -38,7 +38,6 @@ insert into sys_dept values(109,  102, '0,100,102',  '财务部门',   2, '若�
 -- ----------------------------
 -- 2、用户信息表
 -- ----------------------------
-drop table if exists sys_user;
 create table sys_user (
   user_id           bigint(20)      not null auto_increment    comment '用户ID',
   dept_id           bigint(20)      default null               comment '部门ID',
@@ -73,7 +72,6 @@ insert into sys_user values(2,  105, 'ry',    '若依', '00', 'ry@qq.com',  '156
 -- ----------------------------
 -- 3、岗位信息表
 -- ----------------------------
-drop table if exists sys_post;
 create table sys_post
 (
   post_id       bigint(20)      not null auto_increment    comment '岗位ID',
@@ -101,7 +99,6 @@ insert into sys_post values(4, 'user', '普通员工',  4, '0', 'admin', sysdate
 -- ----------------------------
 -- 4、角色信息表
 -- ----------------------------
-drop table if exists sys_role;
 create table sys_role (
   role_id              bigint(20)      not null auto_increment    comment '角色ID',
   role_name            varchar(30)     not null                   comment '角色名称',
@@ -130,7 +127,6 @@ insert into sys_role values('2', '普通角色',    'common', 2, 2, 1, 1, '0', '
 -- ----------------------------
 -- 5、菜单权限表
 -- ----------------------------
-drop table if exists sys_menu;
 create table sys_menu (
   menu_id           bigint(20)      not null auto_increment    comment '菜单ID',
   menu_name         varchar(50)     not null                   comment '菜单名称',
@@ -264,7 +260,6 @@ insert into sys_menu values('1060', '生成代码', '116', '6', '#', '', '', '',
 -- ----------------------------
 -- 6、用户和角色关联表  用户N-1角色
 -- ----------------------------
-drop table if exists sys_user_role;
 create table sys_user_role (
   user_id   bigint(20) not null comment '用户ID',
   role_id   bigint(20) not null comment '角色ID',
@@ -281,7 +276,6 @@ insert into sys_user_role values ('2', '2');
 -- ----------------------------
 -- 7、角色和菜单关联表  角色1-N菜单
 -- ----------------------------
-drop table if exists sys_role_menu;
 create table sys_role_menu (
   role_id   bigint(20) not null comment '角色ID',
   menu_id   bigint(20) not null comment '菜单ID',
@@ -380,7 +374,6 @@ insert into sys_role_menu values ('2', '1060');
 -- ----------------------------
 -- 8、角色和部门关联表  角色1-N部门
 -- ----------------------------
-drop table if exists sys_role_dept;
 create table sys_role_dept (
   role_id   bigint(20) not null comment '角色ID',
   dept_id   bigint(20) not null comment '部门ID',
@@ -398,7 +391,6 @@ insert into sys_role_dept values ('2', '105');
 -- ----------------------------
 -- 9、用户与岗位关联表  用户1-N岗位
 -- ----------------------------
-drop table if exists sys_user_post;
 create table sys_user_post
 (
   user_id   bigint(20) not null comment '用户ID',
@@ -416,7 +408,6 @@ insert into sys_user_post values ('2', '2');
 -- ----------------------------
 -- 10、操作日志记录
 -- ----------------------------
-drop table if exists sys_oper_log;
 create table sys_oper_log (
   oper_id           bigint(20)      not null auto_increment    comment '日志主键',
   title             varchar(50)     default ''                 comment '模块标题',
@@ -445,7 +436,6 @@ create table sys_oper_log (
 -- ----------------------------
 -- 11、字典类型表
 -- ----------------------------
-drop table if exists sys_dict_type;
 create table sys_dict_type
 (
   dict_id          bigint(20)      not null auto_increment    comment '字典主键',
@@ -476,7 +466,6 @@ insert into sys_dict_type values(10, '系统状态', 'sys_common_status',   '0',
 -- ----------------------------
 -- 12、字典数据表
 -- ----------------------------
-drop table if exists sys_dict_data;
 create table sys_dict_data
 (
   dict_code        bigint(20)      not null auto_increment    comment '字典编码',
@@ -530,7 +519,6 @@ insert into sys_dict_data values(29, 2,  '失败',     '1',       'sys_common_st
 -- ----------------------------
 -- 13、参数配置表
 -- ----------------------------
-drop table if exists sys_config;
 create table sys_config (
   config_id         int(5)          not null auto_increment    comment '参数主键',
   config_name       varchar(100)    default ''                 comment '参数名称',
@@ -559,7 +547,6 @@ insert into sys_config values(9, '用户管理-密码字符范围',         'sys
 -- ----------------------------
 -- 14、系统访问记录
 -- ----------------------------
-drop table if exists sys_logininfor;
 create table sys_logininfor (
   info_id        bigint(20)     not null auto_increment   comment '访问ID',
   user_name      varchar(50)    default ''                comment '用户账号',
@@ -579,7 +566,6 @@ create table sys_logininfor (
 -- ----------------------------
 -- 15、定时任务调度表
 -- ----------------------------
-drop table if exists sys_job;
 create table sys_job (
   job_id              bigint(20)    not null auto_increment    comment '任务ID',
   job_name            varchar(64)   default ''                 comment '任务名称',
@@ -605,7 +591,6 @@ insert into sys_job values(3, '系统默认（多参）', 'DEFAULT', 'ryTask.ryM
 -- ----------------------------
 -- 16、定时任务调度日志表
 -- ----------------------------
-drop table if exists sys_job_log;
 create table sys_job_log (
   job_log_id          bigint(20)     not null auto_increment    comment '任务日志ID',
   job_name            varchar(64)    not null                   comment '任务名称',
@@ -624,7 +609,6 @@ create table sys_job_log (
 -- ----------------------------
 -- 17、通知公告表
 -- ----------------------------
-drop table if exists sys_notice;
 create table sys_notice (
   notice_id         int(4)          not null auto_increment    comment '公告ID',
   notice_title      varchar(50)     not null                   comment '公告标题',
@@ -650,7 +634,6 @@ insert into sys_notice values('3', '若依开源框架介绍', '1', '<p><span st
 -- ----------------------------
 -- 18、公告已读记录表
 -- ----------------------------
-drop table if exists sys_notice_read;
 create table sys_notice_read (
   read_id          bigint(20)       not null auto_increment    comment '已读主键',
   notice_id        int(4)           not null                   comment '公告id',
@@ -664,7 +647,6 @@ create table sys_notice_read (
 -- ----------------------------
 -- 19、代码生成业务表
 -- ----------------------------
-drop table if exists gen_table;
 create table gen_table (
   table_id          bigint(20)      not null auto_increment    comment '编号',
   table_name        varchar(200)    default ''                 comment '表名称',
@@ -695,7 +677,6 @@ create table gen_table (
 -- ----------------------------
 -- 20、代码生成业务表字段
 -- ----------------------------
-drop table if exists gen_table_column;
 create table gen_table_column (
   column_id         bigint(20)      not null auto_increment    comment '编号',
   table_id          bigint(20)                                 comment '归属表编号',

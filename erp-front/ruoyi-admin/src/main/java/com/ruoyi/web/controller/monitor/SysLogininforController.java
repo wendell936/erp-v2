@@ -39,7 +39,7 @@ public class SysLogininforController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(SysLogininfor logininfor)
     {
-        startPage();
+        startPage("info_id desc", "info_id");
         List<SysLogininfor> list = logininforService.selectLogininforList(logininfor);
         return getDataTable(list);
     }
