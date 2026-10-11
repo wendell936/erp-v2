@@ -16,6 +16,8 @@
 - [开发执行记录](development/execution-journal.md)：按任务关联的实际变更、验证、失败与恢复摘要。
 - [数据库版本管理规范](development/database-migrations.md)：初始化、增量迁移及工具接入要求。
 - [Amazon SP-API 接入与配置](development/amazon-sp-api-integration.md)：官方 SDK、认证适配、安全配置、依赖兼容及验证边界。
+- [供应商基础资料接口](development/supplier-management.md)：字段、权限、幂等、并发审计、UTC时间及迁移恢复边界。
+- [供应商基础资料页面验收](testing/supplier-management-ui.md)：真实前后端角色、分页、启停、审计故障恢复及并发冲突证据。
 - [发布、日志与恢复规范](operations/release-and-recovery.md)：发布流程、日志管理和恢复验证。
 - [首个业务闭环验收基准](testing/first-business-loop.md)：固定测试数据、预期结果和必要回归场景。
 - [后端测试基线](testing/backend-test-baseline.md)：JUnit 执行入口、测试依赖及当前认证用例的覆盖边界。

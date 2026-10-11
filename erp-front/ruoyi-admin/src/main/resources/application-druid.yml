@@ -52,8 +52,8 @@ spring:
             filter:
                 stat:
                     enabled: true
-                    # 慢SQL记录
-                    log-slow-sql: true
+                    # 慢SQL原文可能包含联系人等绑定参数；保留统计，不记录原文参数。
+                    log-slow-sql: false
                     slow-sql-millis: 1000
                     merge-sql: true
                 wall:

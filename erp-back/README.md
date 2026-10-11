@@ -32,6 +32,8 @@ RuoYi-Vue 前端项目的三个主要演进版本，方便你直观对比其技�
 
 ## 前端运行
 
+供应商基础资料入口为“基础资料 → 供应商”，随 V2026101103 菜单迁移启用；实际权限、前后端联合验证及未验证项见[供应商页面验收](../doc/testing/supplier-management-ui.md)。商品报价选择待商品模型及报价接口完成。
+
 本项目 ERP 开发进度见[任务台账](../doc/development/task-board.md)。仓库根目录可执行 `npm --prefix erp-back install --no-audit --no-fund` 安装现有依赖，执行 `npm --prefix erp-back run build:prod` 验证生产构建。具体执行结果及未验证项见[开发执行记录](../doc/development/execution-journal.md)；安装成功不等同页面联调通过。
 
 ```bash

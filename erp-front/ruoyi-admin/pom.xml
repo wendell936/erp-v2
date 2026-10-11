@@ -125,6 +125,9 @@
                         </executions>
                         <configuration>
                             <failIfNoTests>true</failIfNoTests>
+                            <!-- 若依静态 AsyncManager 绑定进程内首个应用线程池，完整应用测试须隔离 JVM。 -->
+                            <forkCount>1</forkCount>
+                            <reuseForks>false</reuseForks>
                             <!-- Boot 可执行包的嵌套类路径不能直接用作 Failsafe 类路径。 -->
                             <classesDirectory>${project.build.outputDirectory}</classesDirectory>
                         </configuration>

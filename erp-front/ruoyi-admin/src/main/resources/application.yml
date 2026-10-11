@@ -35,6 +35,8 @@ server:
 logging:
   level:
     com.ruoyi: debug
+    # 供应商联系方式等参数不写入 MyBatis 技术日志。
+    com.ruoyi.erp.supplier.mapper: info
     org.springframework: warn
 
 # 用户配置
