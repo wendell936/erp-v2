@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.erp.finance.mapper.ExchangeRateMapper">
+    <resultMap id="RateResult" type="com.ruoyi.erp.finance.domain.ExchangeRate">
+        <id property="rateId" column="rate_id"/>
+        <result property="rateDate" column="rate_date"/>
+        <result property="usdCny" column="usd_cny"/>
+        <result property="version" column="version"/>
+        <result property="requestId" column="request_id"/>
+        <result property="requestHash" column="request_hash"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time" typeHandler="com.ruoyi.erp.persistence.UtcDateTimeTypeHandler"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time" typeHandler="com.ruoyi.erp.persistence.UtcDateTimeTypeHandler"/>
+    </resultMap>
+    <resultMap id="RevisionResult" type="com.ruoyi.erp.finance.domain.ExchangeRateRevision">
+        <id property="revisionId" column="revision_id"/>
+        <result property="rateId" column="rate_id"/>
+        <result property="rateDate" column="rate_date"/>
+        <result property="usdCny" column="usd_cny"/>
+        <result property="version" column="version"/>
+        <result property="reason" column="reason"/>
+        <result property="operator" column="operator"/>
+        <result property="changeTime" column="change_time" typeHandler="com.ruoyi.erp.persistence.UtcDateTimeTypeHandler"/>
+    </resultMap>
+    <sql id="columns">rate_id,rate_date,usd_cny,version,request_id,request_hash,create_by,create_time,update_by,update_time</sql>
+    <select id="selectList" resultMap="RateResult">
+        SELECT <include refid="columns"/> FROM erp_exchange_rate
+        <where>
+            <if test="from != null">AND rate_date &gt;= #{from}</if>
+            <if test="to != null">AND rate_date &lt;= #{to}</if>
+        </where>
+    </select>
+    <select id="selectById" resultMap="RateResult">
+        SELECT <include refid="columns"/> FROM erp_exchange_rate WHERE rate_id=#{rateId}
+    </select>
+    <select id="selectByDate" resultMap="RateResult">
+        SELECT <include refid="columns"/> FROM erp_exchange_rate WHERE rate_date=#{rateDate}
+    </select>
+    <insert id="insertOrFind" useGeneratedKeys="true" keyProperty="rateId">
+        INSERT INTO erp_exchange_rate(rate_date,usd_cny,version,request_id,request_hash,create_by,create_time)
+        VALUES(#{rateDate},#{usdCny},0,#{requestId},#{requestHash},#{createBy},
+            #{createTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler})
+        ON DUPLICATE KEY UPDATE rate_id=LAST_INSERT_ID(rate_id)
+    </insert>
+    <update id="update">
+        UPDATE erp_exchange_rate SET usd_cny=#{usdCny},version=version+1,update_by=#{updateBy},
+            update_time=#{updateTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler}
+        WHERE rate_id=#{rateId} AND version=#{version}
+    </update>
+    <sql id="revisionValues">
+        INSERT INTO erp_exchange_rate_revision(rate_id,rate_date,usd_cny,version,reason,operator,change_time)
+        VALUES(#{rateId},#{rateDate},#{usdCny},#{version},#{reason},#{operator},
+            #{changeTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler})
+    </sql>
+    <insert id="insertRevision"><include refid="revisionValues"/></insert>
+    <insert id="insertCreationRevision">
+        <include refid="revisionValues"/> ON DUPLICATE KEY UPDATE revision_id=revision_id
+    </insert>
+    <select id="selectRevisions" resultMap="RevisionResult">
+        SELECT revision_id,rate_id,rate_date,usd_cny,version,reason,operator,change_time
+        FROM erp_exchange_rate_revision WHERE rate_id=#{rateId}
+    </select>
+</mapper>

@@ -30,4 +30,4 @@ MySQL DDL 可能部分提交。任何失败停止后续迁移，保留日志、�
 
 [隔离测试脚本](../../scripts/test-database-migrations.sh)创建独立 MySQL 8.4 和 Redis 7.4 容器，只绑定 loopback，随机生成凭据，执行 Failsafe 的 `migration-it` profile，结束后删除本轮容器。测试库名随机生成，不访问业务库；TLS 关闭仅用于该临时 loopback 实例。
 
-用例覆盖 Boot/Flyway 与 Druid/MyBatis 装配、空库初始化、再次运行、显式基线接管、增量、失败阻断、校验值及未来版本、真实备份恢复；完整应用还覆盖 HTTP 登录、真实 Redis TTL、大小写账号锁定、并发计数、解锁鉴权及状态保留。实际 MySQL 为 8.4.11、JDK 为 21；Java 17、真实既有库接管、浏览器页面、生产备份性能与恢复目标、账号权限分离及多进程并发部署尚未验收。
+用例覆盖 Boot/Flyway 与 Druid/MyBatis 装配、空库初始化、再次运行、显式基线接管、增量、失败阻断、校验值及未来版本、真实备份恢复；完整应用还覆盖 HTTP 登录、真实 Redis TTL、大小写账号锁定、并发计数、解锁鉴权及状态保留。实际MySQL为8.4.11，初轮JDK21、后续实际Java17均通过，见[后端运行证据](../testing/backend-test-baseline.md#java17实际运行验收)；业务页面验收由对应模块记录。真实既有库接管、生产备份性能与恢复目标、数据库迁移/业务账号权限分离及多进程并发部署尚未验收。

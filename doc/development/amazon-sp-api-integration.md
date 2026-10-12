@@ -8,7 +8,7 @@
 
 SDK 中实际核对了 Catalog 2022-04-01、Listings 2021-08-01、FBA Inventory v1、Fulfillment Inbound 2024-03-20、Orders 2026-01-01、Finances 2024-06-19、Reports 2021-06-30 和 Sellers v1。存在对应类不代表店铺角色已获批、操作已联通或业务映射已实现。首期货件仍在 Seller Central 创建，ERP 后续关联同步。
 
-官方 SDK 为 Apache-2.0，要求 Java 11+；本项目继续声明 Java 17。本轮构建及测试实际使用 JDK 21.0.11、目标字节码 17，没有 Java 17 运行时验证结果。版本选择基于目标接口覆盖及当前依赖验证，不以“最新”为选型依据。
+官方 SDK 为 Apache-2.0，要求 Java 11+；本项目继续声明 Java 17。初轮使用 JDK 21.0.11、目标字节码17；随后P0-20.j17已用实际Microsoft OpenJDK17.0.20.1干净编译和完整93项隔离回归，包括SDK模型及认证测试，见[运行证据](../testing/backend-test-baseline.md#java17实际运行验收)。版本选择基于目标接口覆盖及当前依赖验证，不以“最新”为选型依据。
 
 ## 依赖与兼容处理
 
@@ -27,7 +27,7 @@ SDK 中实际核对了 Catalog 2022-04-01、Listings 2021-08-01、FBA Inventory 
 
 新增直接依赖复用 SDK 所需的 HTTP/JSON 组件，没有引入第二套 SP-API 客户端。SDK、OkHttp、Gson、gson-fire、Okio、Bucket4j、Kotlin、SnakeYAML 和 Swagger 注解发布 POM/父 POM 标明 Apache-2.0；Jakarta Annotation API 标明 EPL-2.0 / GPL2 with Classpath Exception 双许可，使用时保留相应许可证通知。完整依赖安全扫描作为发布前检查，不能用构建成功或上游暂未公布公告证明无漏洞。
 
-已查阅官方 SDK 安全页面及源码。本轮评估重点为凭据日志泄漏、超时、重定向、并发刷新和重复依赖；没有执行完整 CVE 扫描、Java 17 运行或真实 TLS/网络超时演练。升级成本主要是重新验证模型解析、公开 signer 扩展、依赖树和同步业务映射，不修改 SDK 生成源码。
+已查阅官方 SDK 安全页面及源码。评估重点为凭据日志泄漏、超时、重定向、并发刷新和重复依赖；Java17运行兼容已验证，完整CVE扫描及真实TLS/网络超时演练仍未执行。升级成本主要是重新验证模型解析、公开 signer 扩展、依赖树和同步业务映射，不修改 SDK 生成源码。
 
 ## 为什么补认证适配
 

@@ -108,8 +108,8 @@ class DatabaseMigrationIT
     void emptyDatabaseInitializesAndRepeatedMigrationPreservesData() throws Exception
     {
         Flyway flyway = flyway().load();
-        assertEquals(5, flyway.migrate().migrationsExecuted);
-        assertEquals(5, scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1"));
+        assertEquals(7, flyway.migrate().migrationsExecuted);
+        assertEquals(7, scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1"));
         assertEquals(2, scalar("SELECT COUNT(*) FROM sys_user"));
         assertEquals(11, scalar("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='"
                 + schema + "' AND table_name LIKE 'QRTZ_%'"));
@@ -141,7 +141,7 @@ class DatabaseMigrationIT
         // 仅此测试已知精确基线；部署既有库必须另行备份、比对结构并人工授权。
         Flyway adopted = flyway().baselineVersion("2026041702").load();
         adopted.baseline();
-        assertEquals(3, adopted.migrate().migrationsExecuted);
+        assertEquals(5, adopted.migrate().migrationsExecuted);
         Path increment = migrationDirectory("CREATE TABLE migration_probe(id INT PRIMARY KEY);", null);
         assertEquals(1, flyway(increment).load().migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT COUNT(*) FROM sys_user WHERE nick_name='ERP-TEST-existing'"));

@@ -10,6 +10,40 @@
 
 [本地配置样例](ruoyi-admin/src/main/resources/application-local.example.yml)不会自动加载；如需文件覆盖，将副本放 `.local/config/application-local.yml`，通过 `--spring.config.additional-location=file:.local/config/application-local.yml` 指定。实际值通过环境或安全配置注入，不写进样例。
 
+### Windows 本地运行
+
+本机默认已按用户要求切为Microsoft OpenJDK17.0.20.1/Maven3.6.3，JAVA_HOME为 `D:\tools\.jdks\ms-17.0.20.1`，系统PATH原Java21入口已替换，Java21保留供恢复；已打开的终端、IDE和Codex需重启以继承新环境。Java、javac及Maven的新子进程版本均已核对为17.0.20.1。POM目标17，已用同一JDK干净编译并通过全部93项隔离回归，来源、摘要及运行边界见[后端测试基线](../doc/testing/backend-test-baseline.md#java17实际运行验收)，原工程证据见[工程基线交接](../doc/testing/phase-zero-verification.md)。
+
+临时选择其他JDK或在新环境指定工具时，可只设置当前进程环境，并将该JDK的bin放在PATH首位；先核对 `mvn.cmd -version` 的实际Java版本。工具不随Git同步，新环境从官方取得并校验后使用自己的路径，例如：
+
+```powershell
+$erpPreviousJavaHome = $env:JAVA_HOME
+$erpPreviousPath = $env:PATH
+try {
+    $env:JAVA_HOME = 'D:\tools\.jdks\ms-17.0.20.1'
+    $env:PATH = "$env:JAVA_HOME\bin;$erpPreviousPath"
+    mvn.cmd -version
+    # 在此执行下述构建、运行或隔离回归；核对实际退出码。
+} finally {
+    $env:JAVA_HOME = $erpPreviousJavaHome
+    $env:PATH = $erpPreviousPath
+}
+```
+
+从仓库根目录执行（先在受保护的进程环境中注入上述数据库、Redis及令牌配置）：
+
+```powershell
+mvn.cmd -B -f erp-front/pom.xml verify
+# 构建退出0后启动，默认8080；仅绑定本机用于开发。
+java -jar erp-front/ruoyi-admin/target/ruoyi-admin.jar --server.address=127.0.0.1
+```
+
+集成回归需启动 Docker Desktop 的 Linux engine，再执行 `./scripts/test-database-migrations.ps1`。该入口自建随机隔离库、Redis及合成账号，退出后删除本轮容器；不能将它用作持久业务环境。原始输出重定向到已创建的 `.local/logs/<任务ID>/` 并核对实际退出码。测试不需要真实 SP-API 凭据，默认关闭外部调用。
+
+运行库须事先完成经过授权的迁移，当前共7个版本脚本；普通启动默认不迁移。样例文件显式关闭 Flyway，加载它后不会因环境变量启用迁移。未知非空库按迁移决策预检，禁止直接重置或自动baseline。首次新环境须更换基线演示账号密码并落实角色授权；隔离测试合成账号不是正式账号方案。
+
+启动成功后以前端真实登录及所需业务接口核对连接和权限，不能用进程存在或构建成功代替联调；当前尚无已验收的生产健康检查/告警体系。停止正在运行的jar后再执行重新打包，避免Windows文件占用。当前JSON日期显示仍沿用框架GMT+8配置，不代表店铺/财务业务时区已经确认。
+
 <p align="center">
 	<img alt="logo" src="https://oscimg.oschina.net/oscnet/up-d3d0a9303e11d522a06cd263f3079027715.png">
 </p>

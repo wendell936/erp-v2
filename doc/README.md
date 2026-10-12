@@ -17,10 +17,13 @@
 - [数据库版本管理规范](development/database-migrations.md)：初始化、增量迁移及工具接入要求。
 - [Amazon SP-API 接入与配置](development/amazon-sp-api-integration.md)：官方 SDK、认证适配、安全配置、依赖兼容及验证边界。
 - [供应商基础资料接口](development/supplier-management.md)：字段、权限、幂等、并发审计、UTC时间及迁移恢复边界。
+- [日期汇率与原币换算](development/dated-exchange-rates.md)：精确日期、十进制、不可变快照服务、权限及迁移恢复。
+- [日期汇率页面验收](testing/dated-exchange-rates-ui.md)：手工维护、缺汇率提示、历史和换算预览的实际验证。
 - [供应商基础资料页面验收](testing/supplier-management-ui.md)：真实前后端角色、分页、启停、审计故障恢复及并发冲突证据。
 - [发布、日志与恢复规范](operations/release-and-recovery.md)：发布流程、日志管理和恢复验证。
 - [首个业务闭环验收基准](testing/first-business-loop.md)：固定测试数据、预期结果和必要回归场景。
-- [后端测试基线](testing/backend-test-baseline.md)：JUnit 执行入口、测试依赖及当前认证用例的覆盖边界。
+- [后端测试基线](testing/backend-test-baseline.md)：JUnit入口、实际Java17干净编译/93项回归证据及覆盖边界。
+- [工程基线交接](testing/phase-zero-verification.md)：P0-27模块运行入口、已有验证证据及阶段0外部对接/上线未决项。
 - [管理员解除临时锁定页面验收](testing/account-unlock-ui.md)：行内解锁、合成 API 浏览器验收及真实联调待验收项。
 - [领星交互观察记录](development/lingxing-interaction-reference.md)：本地账号、商品测试样例、采购列表观察与必要业务差异。
 

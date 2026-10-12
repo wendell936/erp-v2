@@ -1,4 +1,4 @@
-package com.ruoyi.erp.supplier.mapper;
+package com.ruoyi.erp.persistence;
 
 import java.sql.*;
 import java.util.Calendar;

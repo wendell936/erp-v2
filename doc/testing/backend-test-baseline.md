@@ -31,10 +31,33 @@ mvn -B -f erp-front/pom.xml verify
 
 `ruoyi-admin` 引入同 BOM 的测试 starter，Surefire 执行迁移及环境安全配置单元测试；Failsafe 3.5.6 在显式 `migration-it` profile 执行 `DatabaseMigrationIT`。对 Boot 入口模块明确使用 `target/classes`，避免可执行包的嵌套路径影响测试。
 
-运行 `scripts/test-database-migrations.sh` 自动生成独立临时 MySQL 与测试库，覆盖初始化、显式已知基线接管、增量、重复执行、校验和及未来版本、失败阻断、真实 mysqldump 备份恢复和事务回滚/提交。Boot/Druid/MyBatis 集成验证迁移先于业务会话工厂，使用真实 Mapper 查询。测试不覆盖完整登录链路或业务库存/财务事务，后续按对应任务补齐。
+Linux运行 `scripts/test-database-migrations.sh`，Windows PowerShell运行 `./scripts/test-database-migrations.ps1`，自动生成独立临时MySQL/Redis及测试库，覆盖初始化、显式已知基线接管、增量、重复执行、校验和及未来版本、失败阻断、真实mysqldump备份恢复和事务回滚/提交。Boot/Druid/MyBatis集成验证迁移先于业务会话工厂，使用真实Mapper查询；整个profile还运行下述登录和供应商用例，不覆盖尚未实现的库存/财务事务。
 
 安全配置用例验证缺少数据库凭据、弱或非法 Base64 令牌密钥、监控台缺少独立凭据时阻断，异常不输出敏感值；合法密钥实际完成 HS512 签名与解析。实际连接和启动方式见[后端说明](../../erp-front/README.md)。
 
 `LoginBoundaryTest` 追加验证码错误/缺失/过期不进入密码认证、成功验证码消费一次、停用和删除账号先于密码校验拒绝的模拟用例。缺失验证码现返回业务错误，不再空指针异常。真实 Redis TTL、并发验证码消费及完整 HTTP 登录留在 P0-16.b，不以模拟结果代替。
 
 `LoginFlowIT` 启动只绑定 loopback 的完整应用、临时 MySQL/Redis，使用合成账号和随机令牌密钥，通过实际 HTTP 验证验证码、五次锁定、真实 TTL 到期、成功清零、停用拒绝、规范账号名、管理员解锁与只读拒绝，以及并发失败上限。103 条同名账号验证客户端排序后的唯一键顺序、100 条上限和 pageSize=0 默认 10 条；16 个现有分页端点均通过真实查询。最新验证码并发消费和解锁审计验证结果以执行记录为准。
+
+`SupplierFlowIT` 通过真实HTTP/MySQL/Redis覆盖角色权限、输入边界、并发创建幂等、版本冲突、创建/编辑/启停审计失败回滚、UTC日期处理、路由菜单及分页；细节见[供应商接口契约](../development/supplier-management.md)。Failsafe串行运行各测试类且不复用JVM，避免若依静态AsyncManager持有前一应用已关闭的线程池；不是生产线程池改造。
+
+供应商基线3fb07e7已执行48项单元测试及14项集成测试，证据见[工程基线交接](phase-zero-verification.md)；不将历史模拟用例的覆盖限制误写为当前整个profile没有登录/数据库验证。生产及真实店铺边界保持未验证；随后Java17验证见下节。
+
+随后日期汇率增量新增26项`ExchangeRateServiceTest`单元及5项`ExchangeRateFlowIT`真实HTTP/MySQL/Redis集成，覆盖精确日期、BigDecimal舍入、不可变快照、三角色、幂等/并发、审计失败回滚、UTC及菜单升级。2026-10-11最终共74项单元+19项集成全部通过，日志摘要及页面边界见[汇率验收](dated-exchange-rates-ui.md)；实际采购/费用确认持久化仍待P1-18.b。
+
+## Java17实际运行验收
+
+P0-20.j17，2026-10-11：Microsoft OpenJDK17.0.20.1+1-LTS、Windows11 x64、Maven3.6.3、隔离MySQL8.4/Redis7.4；保留系统默认Java21。来源为[Microsoft官方下载页](https://learn.microsoft.com/en-us/java/openjdk/download)，固定包 `https://aka.ms/download-jdk/microsoft-jdk-17.0.20.1-windows-x64.zip`，下载对应 `.sha256sum.txt` 并核对后才运行。包SHA256 `3D9006956FC8AF5601CD24FFC4F468BEF48279C7EBD8171B9BDF90D0AABFBF1F`；保留包内许可证，便携JDK在忽略目录 `.local/tools/microsoft-jdk-17.0.20.1/`，不是应用新增依赖或系统安装。
+
+本次先用同一Java17执行 `mvn.cmd -B -f erp-front/pom.xml clean`，退出0，清除全部7个子模块旧target；再运行 `pwsh -NoProfile -File scripts/test-database-migrations.ps1`，退出0、8模块成功。13份Surefire/Failsafe XML逐项确认 `java.version=17.0.20.1`，合计74项单元、19项集成，无失败/错误/跳过；不仅是Java21编译成17字节码。覆盖真实SDK模型及合成认证、登录/权限、7份迁移/备份恢复、供应商事务和汇率并发/舍入/回滚。
+
+| 本地证据 | SHA256 |
+|---|---|
+| `.local/logs/P0-20.j17/integration.log` | `3C2538706DF7EB23DF19402BCB7574BF41994C31CD430BF01120EEA65C6808D4` |
+| `.local/logs/P0-20.j17/clean.log` | `84A5B73DAA1E5DED9C9F3820FC4ED495E6C78D651BC4F211A35A8DFE1D23B365` |
+| `.local/logs/P0-20.j17/runtime.log` | `B61122910CB56CE16C86FACA3C9A5FF85BD8B6EA0040845CE68CD1FB4D161ACF` |
+| `.local/logs/P0-20.j17/jdk-bootstrap.log` | `41B6F3B1726A1076002AD61F947E118A21E1C3896CE9F55ADD7AC90C2ECEBAA7` |
+
+运行版本为供应商3fb07e7加当前未提交日期汇率成果；19个变更代码/配置文件清单及摘要在同目录 `tested-source-manifest.json`，回归后核对未变化。生成jar摘要 `4428FCB50C3D87CFFDE9174742AB0DC83A170EEFE27F76CCAA338CD15F201F8E` 仅定位本地本次产物，不作为正式发布版本。报告、源码复核和清理探针见 `evidence-verification.log`。
+
+隔离容器已由finally清理，复查剩余0、8080/5173监听0，进程JAVA_HOME/PATH恢复至默认Java21；删除本轮ZIP及临时材料，保留可复用便携JDK和日志。前端代码未变，沿用汇率最终生产构建及Java21下实际页面验收；未在Java17下再次操作浏览器。真实店铺、正式业务库、生产部署/容量/恢复目标、完整CVE及P1-18.b仍未验证，不将运行兼容通过扩展为生产就绪。

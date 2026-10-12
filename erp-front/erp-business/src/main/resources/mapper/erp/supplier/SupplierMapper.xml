@@ -12,9 +12,9 @@
         <result property="requestId" column="request_id"/>
         <result property="requestHash" column="request_hash"/>
         <result property="createBy" column="create_by"/>
-        <result property="createTime" column="create_time" typeHandler="com.ruoyi.erp.supplier.mapper.UtcDateTimeTypeHandler"/>
+        <result property="createTime" column="create_time" typeHandler="com.ruoyi.erp.persistence.UtcDateTimeTypeHandler"/>
         <result property="updateBy" column="update_by"/>
-        <result property="updateTime" column="update_time" typeHandler="com.ruoyi.erp.supplier.mapper.UtcDateTimeTypeHandler"/>
+        <result property="updateTime" column="update_time" typeHandler="com.ruoyi.erp.persistence.UtcDateTimeTypeHandler"/>
         <result property="remark" column="remark"/>
     </resultMap>
     <resultMap id="ChangeResult" type="com.ruoyi.erp.supplier.domain.SupplierChange">
@@ -24,7 +24,7 @@
         <result property="operation" column="operation"/>
         <result property="reason" column="reason"/>
         <result property="operator" column="operator"/>
-        <result property="changeTime" column="change_time" typeHandler="com.ruoyi.erp.supplier.mapper.UtcDateTimeTypeHandler"/>
+        <result property="changeTime" column="change_time" typeHandler="com.ruoyi.erp.persistence.UtcDateTimeTypeHandler"/>
     </resultMap>
     <sql id="columns">
         supplier_id,supplier_name,contact_name,contact_phone,settlement_terms,status,version,
@@ -45,25 +45,25 @@
             request_id,request_hash,create_by,create_time,remark)
         VALUES(#{supplierName},#{contactName},#{contactPhone},#{settlementTerms},'0',0,
             #{requestId},#{requestHash},#{createBy},
-            #{createTime,typeHandler=com.ruoyi.erp.supplier.mapper.UtcDateTimeTypeHandler},#{remark})
+            #{createTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler},#{remark})
         ON DUPLICATE KEY UPDATE supplier_id=LAST_INSERT_ID(supplier_id)
     </insert>
     <update id="update">
         UPDATE erp_supplier SET supplier_name=#{supplierName},contact_name=#{contactName},
             contact_phone=#{contactPhone},settlement_terms=#{settlementTerms},remark=#{remark},
             version=version+1,update_by=#{updateBy},
-            update_time=#{updateTime,typeHandler=com.ruoyi.erp.supplier.mapper.UtcDateTimeTypeHandler}
+            update_time=#{updateTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler}
         WHERE supplier_id=#{supplierId} AND version=#{version}
     </update>
     <update id="updateStatus">
         UPDATE erp_supplier SET status=#{status},version=version+1,update_by=#{updateBy},
-            update_time=#{updateTime,typeHandler=com.ruoyi.erp.supplier.mapper.UtcDateTimeTypeHandler}
+            update_time=#{updateTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler}
         WHERE supplier_id=#{supplierId} AND version=#{version}
     </update>
     <sql id="changeValues">
         INSERT INTO erp_supplier_change(supplier_id,version,operation,reason,operator,change_time)
         VALUES(#{supplierId},#{version},#{operation},#{reason},#{operator},
-            #{changeTime,typeHandler=com.ruoyi.erp.supplier.mapper.UtcDateTimeTypeHandler})
+            #{changeTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler})
     </sql>
     <insert id="insertChange"><include refid="changeValues"/></insert>
     <insert id="insertCreationChange">

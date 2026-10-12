@@ -34,25 +34,22 @@ RuoYi-Vue 前端项目的三个主要演进版本，方便你直观对比其技�
 
 供应商基础资料入口为“基础资料 → 供应商”，随 V2026101103 菜单迁移启用；实际权限、前后端联合验证及未验证项见[供应商页面验收](../doc/testing/supplier-management-ui.md)。商品报价选择待商品模型及报价接口完成。
 
+日期汇率入口为“基础资料 → 日期汇率”，随 V2026101105 菜单迁移启用；可维护指定日USD/CNY、查看历史及只读换算预览，实际联合验证见[日期汇率页面验收](../doc/testing/dated-exchange-rates-ui.md)。预览不生成已确认费用或资金记录。
+
 本项目 ERP 开发进度见[任务台账](../doc/development/task-board.md)。仓库根目录可执行 `npm --prefix erp-back install --no-audit --no-fund` 安装现有依赖，执行 `npm --prefix erp-back run build:prod` 验证生产构建。具体执行结果及未验证项见[开发执行记录](../doc/development/execution-journal.md)；安装成功不等同页面联调通过。
 
 ```bash
-# 克隆项目
-git clone https://github.com/yangzongzhuan/RuoYi-Vue3.git
-
-# 进入项目目录
-cd RuoYi-Vue3
-
-# 安装依赖
-yarn --registry=https://registry.npmmirror.com
-
-# 启动服务
-yarn dev
-
-# 构建测试环境 yarn build:stage
-# 构建生产环境 yarn build:prod
-# 前端访问地址 http://localhost:80
+# 从本仓库根目录安装已有依赖，不升级版本
+npm --prefix erp-back install --no-audit --no-fund
+# 显式绑定本机5173；后端先在8080启动
+npm --prefix erp-back run dev -- --host 127.0.0.1 --port 5173 --strictPort
+# 生产构建产物位于 erp-back/dist
+npm --prefix erp-back run build:prod
 ```
+
+Windows PowerShell 可使用 `npm.cmd` 避免本机脚本执行策略影响。原配置默认端口80且自动打开浏览器，上述命令覆盖开发监听地址和端口。开发请求 `/dev-api` 经 Vite 转发至 `http://localhost:8080`，后端端口变更时同步调整 `vite.config.js`；仅打包不能证明代理连通。
+
+生产构建使用 `/prod-api`，部署服务器需配置对应反向代理和静态路由回退；Vite开发代理不随dist部署。`preview`仅作构建预览，不是正式部署方案。前端环境变量会进入浏览器包，不得存放数据库密码、令牌签名密钥或Amazon授权凭据。原始构建/页面证据放 `.local/logs/<任务ID>/`，当前已验证与未验证边界见[工程基线交接](../doc/testing/phase-zero-verification.md)。
 
 ## 内置功能
 
