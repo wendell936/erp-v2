@@ -18,6 +18,10 @@
 - [Amazon SP-API 接入与配置](development/amazon-sp-api-integration.md)：官方 SDK、认证适配、安全配置、依赖兼容及验证边界。
 - [供应商基础资料接口](development/supplier-management.md)：字段、权限、幂等、并发审计、UTC时间及迁移恢复边界。
 - [日期汇率与原币换算](development/dated-exchange-rates.md)：精确日期、十进制、不可变快照服务、权限及迁移恢复。
+- [产品类型与 SKU 编号基础](development/product-types-and-sku-numbering.md)：类型维护、持久编号、事务衔接、权限及迁移恢复。
+- [商品档案、配方映射与参考测算设计](development/product-catalog-design.md)：原SKU与变体独立身份、成品映射、组件复用、报价及空海运参考测算边界。
+- [项目整体一致性审查](testing/project-consistency-review.md)：2026-10-13需求、方案、实现及证据核对，已复现风险、修复优先级与回归缺口。
+- [产品类型页面验收](testing/product-types-ui.md)：隔离环境的真实页面、权限及编号回归证据。
 - [日期汇率页面验收](testing/dated-exchange-rates-ui.md)：手工维护、缺汇率提示、历史和换算预览的实际验证。
 - [供应商基础资料页面验收](testing/supplier-management-ui.md)：真实前后端角色、分页、启停、审计故障恢复及并发冲突证据。
 - [发布、日志与恢复规范](operations/release-and-recovery.md)：发布流程、日志管理和恢复验证。
