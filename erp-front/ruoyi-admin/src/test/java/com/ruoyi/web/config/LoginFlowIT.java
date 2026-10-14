@@ -222,6 +222,111 @@ class LoginFlowIT
         assertTrue(auditCount > 0, "Successful administrator unlock must be audited");
     }
 
+    @Test
+    void administratorResetRejectsInvalidPasswordsWithoutWritingAndValidBoundariesCanLogin() throws Exception
+    {
+        cache.deleteObject(FAILURE_KEY);
+        String adminToken = login(TEST_PASSWORD, null, true).getString("token");
+        long userId = fixtureUserId("ERP-TEST-0");
+        String originalHash = passwordHash(userId);
+        for (String invalid : new String[] {null, "", "abcd", "x".repeat(21)})
+        {
+            assertEquals(500, resetPassword(adminToken, userId, invalid).getIntValue("code"));
+            assertEquals(originalHash, passwordHash(userId), "拒绝的密码不得写入数据库");
+        }
+        for (String valid : new String[] {"a\"<>|", "v".repeat(20), " a b "})
+        {
+            assertEquals(200, resetPassword(adminToken, userId, valid).getIntValue("code"));
+            assertTrue(SecurityUtils.matchesPassword(valid, passwordHash(userId)));
+            JSONObject loggedIn = loginAs("ERP-TEST-0", valid, null, true);
+            assertEquals(200, loggedIn.getIntValue("code"));
+            assertNotNull(loggedIn.getString("token"));
+            assertEquals(403, resetPassword(loggedIn.getString("token"), userId, TEST_PASSWORD)
+                    .getIntValue("code"), "无系统重置权限不能通过直接HTTP改密码");
+        }
+    }
+
+    @Test
+    void selfPasswordChangeUsesLoginLengthRulesAndPreservesPasswordOnFailure() throws Exception
+    {
+        long userId = fixtureUserId("ERP-TEST-1");
+        String token = loginAs("ERP-TEST-1", TEST_PASSWORD, null, true).getString("token");
+        String originalHash = passwordHash(userId);
+        for (String invalid : new String[] {null, "", "abcd", "x".repeat(21)})
+        {
+            assertEquals(500, changeOwnPassword(token, TEST_PASSWORD, invalid).getIntValue("code"));
+            assertEquals(originalHash, passwordHash(userId));
+        }
+        assertEquals(500, changeOwnPassword(token, "wrong-old", "valid").getIntValue("code"));
+        assertEquals(500, changeOwnPassword(token, TEST_PASSWORD, TEST_PASSWORD).getIntValue("code"));
+        assertEquals(originalHash, passwordHash(userId));
+        String current = TEST_PASSWORD;
+        for (String valid : new String[] {"a\"<>|", "v".repeat(20)})
+        {
+            assertEquals(200, changeOwnPassword(token, current, valid).getIntValue("code"));
+            assertTrue(SecurityUtils.matchesPassword(valid, passwordHash(userId)));
+            JSONObject loggedIn = loginAs("ERP-TEST-1", valid, null, true);
+            assertEquals(200, loggedIn.getIntValue("code"));
+            token = loggedIn.getString("token");
+            current = valid;
+        }
+    }
+
+    private long fixtureUserId(String username) throws Exception
+    {
+        try (var connection = DriverManager.getConnection(databaseUrl, "root", databasePassword);
+                var statement = connection.prepareStatement("SELECT user_id FROM sys_user WHERE user_name=?"))
+        {
+            statement.setString(1, username);
+            try (var result = statement.executeQuery())
+            {
+                assertTrue(result.next());
+                return result.getLong(1);
+            }
+        }
+    }
+
+    private String passwordHash(long userId) throws Exception
+    {
+        try (var connection = DriverManager.getConnection(databaseUrl, "root", databasePassword);
+                var statement = connection.prepareStatement("SELECT password FROM sys_user WHERE user_id=?"))
+        {
+            statement.setLong(1, userId);
+            try (var result = statement.executeQuery())
+            {
+                assertTrue(result.next());
+                return result.getString(1);
+            }
+        }
+    }
+
+    private JSONObject resetPassword(String token, long userId, String password) throws Exception
+    {
+        JSONObject body = new JSONObject();
+        body.put("userId", userId);
+        body.put("password", password);
+        return put(token, "/system/user/resetPwd", body);
+    }
+
+    private JSONObject changeOwnPassword(String token, String oldPassword, String newPassword) throws Exception
+    {
+        JSONObject body = new JSONObject();
+        body.put("oldPassword", oldPassword);
+        body.put("newPassword", newPassword);
+        return put(token, "/system/user/profile/updatePwd", body);
+    }
+
+    private JSONObject put(String token, String path, JSONObject body) throws Exception
+    {
+        HttpResponse<String> response = http.send(HttpRequest.newBuilder(URI.create(endpoint + path))
+                .timeout(Duration.ofSeconds(10)).header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(body.toJSONString())).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        return JSON.parseObject(response.body());
+    }
+
     private JSONObject login(String password, String code, boolean solveCaptcha) throws Exception
     {
         return loginAs(USERNAME, password, code, solveCaptcha);

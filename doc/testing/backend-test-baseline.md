@@ -1,5 +1,9 @@
 # 后端测试基线
 
+2026-10-14 P1-26：Java17.0.20.1完整隔离入口74项单元+33项集成＝107项，失败/错误/跳过0；新增类型码两种顺序/大小写并发、旧格式安全领号及迁移保护场景。10份正式迁移，原9份摘要未变，具体结果见[类型验收](product-types-ui.md)，下文103/101/93项为此前批次结果。
+
+2026-10-13审查反馈修复P0-33/P1-27：Java17.0.20.1完整隔离回归74项单元+29项集成＝103项，失败/错误/跳过0；新增管理员重置及自助改密码真实HTTP边界/原值/权限/库不变验收。结果与保留风险见[整体审查反馈](project-consistency-review.md#本轮修复与验证结果)，下文各批次数字为历史结果。
+
 任务：P0-13。执行结果以[开发执行记录](../development/execution-journal.md)为准；本文描述测试入口及边界，不代表所有业务已验收。
 
 ## 工具与依赖
@@ -46,6 +50,8 @@ Linux运行 `scripts/test-database-migrations.sh`，Windows PowerShell运行 `./
 随后日期汇率增量新增26项`ExchangeRateServiceTest`单元及5项`ExchangeRateFlowIT`真实HTTP/MySQL/Redis集成，覆盖精确日期、BigDecimal舍入、不可变快照、三角色、幂等/并发、审计失败回滚、UTC及菜单升级。2026-10-11最终共74项单元+19项集成全部通过，日志摘要及页面边界见[汇率验收](dated-exchange-rates-ui.md)；实际采购/费用确认持久化仍待P1-18.b。
 
 ## Java17实际运行验收
+
+后续产品类型与编号增量（2026-10-12）：Java17完整隔离回归共74项单元+27项集成（101项），失败/错误/跳过均0，含新增8项 `ProductTypeFlowIT`、9份正式迁移，以及既有登录/供应商/日期汇率回归。具体代码、中文搜索故障修正、页面与运行证据见[类型验收](product-types-ui.md)和执行记录E041；下述93项为此前日期汇率版本的历史证据，不混作新增编号验收。
 
 P0-20.j17，2026-10-11：Microsoft OpenJDK17.0.20.1+1-LTS、Windows11 x64、Maven3.6.3、隔离MySQL8.4/Redis7.4；保留系统默认Java21。来源为[Microsoft官方下载页](https://learn.microsoft.com/en-us/java/openjdk/download)，固定包 `https://aka.ms/download-jdk/microsoft-jdk-17.0.20.1-windows-x64.zip`，下载对应 `.sha256sum.txt` 并核对后才运行。包SHA256 `3D9006956FC8AF5601CD24FFC4F468BEF48279C7EBD8171B9BDF90D0AABFBF1F`；保留包内许可证，便携JDK在忽略目录 `.local/tools/microsoft-jdk-17.0.20.1/`，不是应用新增依赖或系统安装。
 

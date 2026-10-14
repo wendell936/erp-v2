@@ -59,7 +59,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="statusOpen" :title="statusForm.status === '1' ? '停用供应商' : '启用供应商'" width="520px" append-to-body :close-on-click-modal="false" :close-on-press-escape="!statusSaving" :show-close="!statusSaving">
+    <el-dialog v-model="statusOpen" :title="statusForm.status === '1' ? '停用供应商' : '启用供应商'" width="520px" append-to-body :close-on-click-modal="false" :close-on-press-escape="!statusSaving" :show-close="!statusSaving" :before-close="closeStatus">
       <p class="status-description">{{ statusForm.supplierName }}：{{ statusForm.status === '1' ? '停用后保留资料和变更记录。' : '确认恢复启用。' }}</p>
       <el-alert v-if="statusFailed" title="操作未成功。若提示资料已变化，请取消并刷新列表，核对状态后再操作。" type="warning" :closable="false" show-icon class="mb8" />
       <el-form ref="statusRef" :model="statusForm" :rules="statusRules" :disabled="statusSaving" label-width="80px">
@@ -67,7 +67,7 @@
       </el-form>
       <template #footer>
         <el-button type="primary" :loading="statusSaving" :disabled="statusSaving" @click="submitStatus">确认</el-button>
-        <el-button :disabled="statusSaving" @click="statusOpen = false">取消</el-button>
+        <el-button :disabled="statusSaving" @click="closeStatus()">取消</el-button>
       </template>
     </el-dialog>
 
@@ -102,6 +102,8 @@
 <script setup name="ErpSupplier">
 import { listSupplier, getSupplier, listSupplierChanges, addSupplier, updateSupplier, changeSupplierStatus } from '@/api/erp/supplier'
 
+import { onBeforeRouteLeave } from 'vue-router'
+
 const { proxy } = getCurrentInstance()
 const supplierList = ref([])
 const loading = ref(false)
@@ -127,6 +129,9 @@ const queryParams = reactive({ pageNum: 1, pageSize: 10, supplierName: '', statu
 const changesQuery = reactive({ pageNum: 1, pageSize: 10 })
 let listSequence = 0
 let changesSequence = 0
+let initialForm = ''
+let initialStatusForm = ''
+let discardConfirmation = null
 
 const nonblank = (rule, value, callback) => value?.trim() ? callback() : callback(new Error(rule.message))
 const rules = {
@@ -165,6 +170,7 @@ function resetQuery() {
 
 function handleAdd() {
   form.value = { supplierName: '', contactName: '', contactPhone: '', settlementTerms: '', remark: '', requestId: crypto.randomUUID() }
+  initialForm = JSON.stringify(form.value)
   saveFailed.value = false
   editOpen.value = true
   nextTick(() => proxy.$refs.supplierRef?.clearValidate())
@@ -176,6 +182,7 @@ async function handleEdit(row) {
   try {
     const response = await getSupplier(row.supplierId)
     form.value = { ...response.data, reason: '' }
+    initialForm = JSON.stringify(form.value)
     saveFailed.value = false
     editOpen.value = true
     nextTick(() => proxy.$refs.supplierRef?.clearValidate())
@@ -183,11 +190,51 @@ async function handleEdit(row) {
   finally { fetching.value = false }
 }
 
-function closeEdit(done) {
-  if (saving.value) return
+function hasUnsavedChanges() {
+  return (editOpen.value && JSON.stringify(form.value) !== initialForm)
+    || (statusOpen.value && JSON.stringify(statusForm.value) !== initialStatusForm)
+}
+
+async function discardChanges() {
+  if (!hasUnsavedChanges()) return true
+  // 关闭按钮与路由同时触发时共用一次确认。
+  if (!discardConfirmation) {
+    discardConfirmation = proxy.$modal.confirm('填写内容尚未保存，确认放弃本次修改？')
+      .then(() => true, () => false).finally(() => { discardConfirmation = null })
+  }
+  return discardConfirmation
+}
+
+async function closeEdit(done) {
+  if (saving.value || statusSaving.value || !await discardChanges()) return
   editOpen.value = false
   if (typeof done === 'function') done()
 }
+
+async function closeStatus(done) {
+  if (saving.value || statusSaving.value || !await discardChanges()) return
+  statusOpen.value = false
+  if (typeof done === 'function') done()
+}
+
+onBeforeRouteLeave(async () => {
+  if (saving.value || statusSaving.value || fetching.value || !await discardChanges()) return false
+  editOpen.value = false
+  statusOpen.value = false
+  return true
+})
+
+function beforeUnload(event) {
+  if (saving.value || statusSaving.value || hasUnsavedChanges()) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
+}
+watch([editOpen, statusOpen], ([editing, changingStatus]) => {
+  if (editing || changingStatus) window.addEventListener('beforeunload', beforeUnload)
+  else window.removeEventListener('beforeunload', beforeUnload)
+})
+onUnmounted(() => window.removeEventListener('beforeunload', beforeUnload))
 
 async function submitForm() {
   if (saving.value) return
@@ -215,6 +262,7 @@ async function handleStatus(row) {
   try {
     const { data } = await getSupplier(row.supplierId)
     statusForm.value = { supplierId: data.supplierId, supplierName: data.supplierName, version: data.version, status: data.status === '0' ? '1' : '0', reason: '' }
+    initialStatusForm = JSON.stringify(statusForm.value)
     statusFailed.value = false
     statusOpen.value = true
     nextTick(() => proxy.$refs.statusRef?.clearValidate())

@@ -59,6 +59,13 @@ public class XssFilter implements Filter
     {
         String url = request.getServletPath();
         String method = request.getMethod();
+        // 密码是凭据而非HTML。与登录一致保留原值，交由入口校验长度后加密；
+        // 清洗整个JSON会悄悄改变密码，甚至让有效密码变成不足5位。
+        if (HttpMethod.PUT.matches(method) && ("/system/user/resetPwd".equals(url)
+                || "/system/user/profile/updatePwd".equals(url)))
+        {
+            return true;
+        }
         // GET DELETE 不过滤
         if (method == null || HttpMethod.GET.matches(method) || HttpMethod.DELETE.matches(method))
         {

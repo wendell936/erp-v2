@@ -9,6 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.PatternMatchUtils;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.constant.HttpStatus;
+import com.ruoyi.common.constant.UserConstants;
 import com.ruoyi.common.core.domain.entity.SysRole;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
@@ -99,6 +100,13 @@ public class SecurityUtils
     {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         return passwordEncoder.encode(password);
+    }
+
+    /** 登录及密码修改入口共用的明文密码长度规则，不裁剪用户输入。 */
+    public static boolean isValidPasswordLength(String password)
+    {
+        return password != null && password.length() >= UserConstants.PASSWORD_MIN_LENGTH
+                && password.length() <= UserConstants.PASSWORD_MAX_LENGTH;
     }
 
     /**

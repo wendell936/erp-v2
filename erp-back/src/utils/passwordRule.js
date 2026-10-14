@@ -36,21 +36,15 @@ export function usePasswordRule() {
   })
   // 校验prompt的inputValidator函数
   const pwdPromptValidator = (value) => {
-    const rule = PWD_RULES['0']
-    if (!value || value.length < 6 || value.length > 20) {
-      return '密码长度必须介于 6 和 20 之间'
-    }
-    if (!rule.pattern.test(value)) {
-      return rule.message
+    if (!value || value.length < 5 || value.length > 20) {
+      return '密码长度必须介于 5 和 20 之间'
     }
   }
   // 个人中心密码校验
   const infoPwdValidator = computed(() => {
-    const rule = PWD_RULES[pwdChrType.value] || PWD_RULES['0']
     return [
       { required: true, message: '新密码不能为空', trigger: 'blur' },
-      { min: 6, max: 20, message: '新密码长度必须介于 6 和 20 之间', trigger: 'blur' },
-      { pattern: rule.pattern, message: rule.message, trigger: 'blur' }
+      { min: 5, max: 20, message: '新密码长度必须介于 5 和 20 之间', trigger: 'blur' }
     ]
   })
   // 注册页面密码校验
