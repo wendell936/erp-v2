@@ -1,8 +1,8 @@
 # ERP 业务模块
 
-任务：P0-08、P0-20、P0-21、P1-08.a、P1-09.a、P1-18.a。业务需求和进度分别见[需求基线](../../doc/requirements/requirements-checklist.md)及[任务台账](../../doc/development/task-board.md)。
+任务：P0-08、P0-20、P0-21、P1-03.a/b、P1-08.a、P1-09.a、P1-18.a。业务需求和进度分别见[需求基线](../../doc/requirements/requirements-checklist.md)及[任务台账](../../doc/development/task-board.md)。
 
-本模块承载商品、采购、库存、加工、FBA、经营财务及 Amazon 适配，按业务包随实现增加目录。当前已有 Maven 骨架、官方 SP-API SDK 认证适配、[供应商基础资料后端](../../doc/development/supplier-management.md)及[日期汇率与不可变换算快照服务](../../doc/development/dated-exchange-rates.md)；商品、报价、采购及实际费用确认快照持久化尚未实现。
+本模块承载商品、采购、库存、加工、FBA、经营财务及 Amazon 适配，按业务包随实现增加目录。当前已有 Maven 骨架、官方 SP-API SDK 认证适配、[供应商基础资料后端](../../doc/development/supplier-management.md)、[日期汇率与不可变换算快照服务](../../doc/development/dated-exchange-rates.md)及[产品类型/内部编号基础](../../doc/development/product-types-and-sku-numbering.md)；完整商品档案、报价、采购及实际费用确认快照持久化尚未实现。
 
 - Java 包：`com.ruoyi.erp`；由 `ruoyi-admin` 启动类所在 `com.ruoyi` 包覆盖组件扫描。
 - MyBatis Mapper 放入相应业务 `mapper` 包，XML 使用 `src/main/resources/mapper/erp/` 下的业务目录；沿用应用现有 `classpath*:mapper/**/*Mapper.xml` 配置。实际 Mapper 随业务实现及集成测试验证。

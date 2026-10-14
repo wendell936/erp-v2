@@ -1,0 +1,325 @@
+<template>
+  <div class="app-container">
+    <el-form ref="queryRef" :model="queryParams" :inline="true" v-show="showSearch">
+      <el-form-item label="搜索" prop="typeName">
+        <el-input v-model="queryParams.typeName" placeholder="搜索类型码、名称或关键词" maxlength="200" clearable style="width: 240px" @keyup.enter="handleQuery" />
+      </el-form-item>
+      <el-form-item label="状态" prop="status">
+        <el-select v-model="queryParams.status" placeholder="全部状态" clearable style="width: 160px">
+          <el-option label="启用" value="0" />
+          <el-option label="停用" value="1" />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5">
+        <el-button v-hasPermi="['erp:productType:add']" type="primary" plain icon="Plus" @click="handleAdd">新增产品类型</el-button>
+      </el-col>
+      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+    </el-row>
+    <el-alert v-if="listFailed" title="产品类型加载失败，请重新搜索或刷新。" type="error" :closable="false" show-icon class="mb8" />
+    <el-table v-else v-loading="loading" :data="productTypeList">
+      <el-table-column label="产品类型名称" prop="typeName" min-width="220" show-overflow-tooltip />
+      <el-table-column label="类型码" prop="typeCode" min-width="120" show-overflow-tooltip />
+      <el-table-column label="关键词" prop="keywords" min-width="160" show-overflow-tooltip />
+      <el-table-column label="状态" align="center" width="90">
+        <template #default="scope"><el-tag :type="scope.row.status === '0' ? 'success' : 'info'">{{ statusLabel(scope.row.status) }}</el-tag></template>
+      </el-table-column>
+      <el-table-column label="创建时间" prop="createTime" width="180" />
+      <el-table-column label="操作" align="center" width="210" fixed="right">
+        <template #default="scope">
+          <el-button v-hasPermi="['erp:productType:query']" link type="primary" :disabled="fetching" @click="handleDetail(scope.row)">详情</el-button>
+          <el-button v-hasPermi="['erp:productType:edit']" link type="primary" :disabled="fetching" @click="handleEdit(scope.row)">编辑</el-button>
+          <el-button v-hasPermi="['erp:productType:status']" link :type="scope.row.status === '0' ? 'danger' : 'primary'" :disabled="fetching" @click="handleStatus(scope.row)">{{ scope.row.status === '0' ? '停用' : '启用' }}</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <pagination v-show="!listFailed && total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+
+    <el-dialog v-model="editOpen" :title="form.typeId ? '编辑产品类型' : '新增产品类型'" width="640px" append-to-body :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" :before-close="closeEdit">
+      <el-alert v-if="saveFailed" :title="form.typeId ? '保存未成功，填写内容已保留。若提示资料已变化，请关闭并重新打开，核对最新资料后再保存。' : '未确认保存成功，填写内容已保留。可重试；重新新增前请刷新列表核对。'" type="warning" :closable="false" show-icon class="mb8" />
+      <el-form ref="productTypeRef" :model="form" :rules="rules" :disabled="saving" label-width="100px">
+        <el-form-item label="产品类型名称" prop="typeName"><el-input v-model="form.typeName" maxlength="200" show-word-limit placeholder="请输入产品类型名称" /></el-form-item>
+        <el-form-item label="类型码" prop="typeCode">
+          <el-input v-model="form.typeCode" maxlength="40" :disabled="saving || (!!form.typeId && form.lastNumber !== '0')" placeholder="仅英文字母和数字，连字符用于 SKU 分隔" />
+          <span v-if="form.typeId && form.lastNumber !== '0'" class="el-form-item__help">已用于 SKU 编码，类型码不能修改。</span>
+        </el-form-item>
+        <el-form-item label="关键词" prop="keywords"><el-input v-model="form.keywords" maxlength="500" placeholder="多个关键词可用逗号分隔" /></el-form-item>
+        <el-form-item label="备注" prop="remark"><el-input v-model="form.remark" type="textarea" :rows="2" maxlength="500" show-word-limit /></el-form-item>
+        <el-form-item v-if="form.typeId" label="修改原因" prop="reason"><el-input v-model="form.reason" type="textarea" :rows="2" maxlength="500" show-word-limit placeholder="请说明本次修改原因" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button type="primary" :loading="saving" :disabled="saving" @click="submitForm">保存</el-button>
+        <el-button :disabled="saving" @click="closeEdit()">取消</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="statusOpen" :title="statusForm.status === '1' ? '停用产品类型' : '启用产品类型'" width="520px" append-to-body :close-on-click-modal="false" :close-on-press-escape="!statusSaving" :show-close="!statusSaving" :before-close="closeStatus">
+      <p class="status-description">{{ statusForm.typeName }}：{{ statusForm.status === '1' ? '停用后保留已有资料，不能再分配新 SKU 编码。' : '确认恢复启用。' }}</p>
+      <el-alert v-if="statusFailed" title="操作未成功。若提示资料已变化，请取消并刷新列表，核对状态后再操作。" type="warning" :closable="false" show-icon class="mb8" />
+      <el-form ref="statusRef" :model="statusForm" :rules="statusRules" :disabled="statusSaving" label-width="80px">
+        <el-form-item label="操作原因" prop="reason"><el-input v-model="statusForm.reason" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="请输入启停原因" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button type="primary" :loading="statusSaving" :disabled="statusSaving" @click="submitStatus">确认</el-button>
+        <el-button :disabled="statusSaving" @click="closeStatus()">取消</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="detailOpen" title="产品类型详情" width="860px" append-to-body :close-on-click-modal="false">
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="产品类型名称" :span="2">{{ detail.typeName }}</el-descriptions-item>
+        <el-descriptions-item label="类型码">{{ detail.typeCode || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="关键词">{{ detail.keywords || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ statusLabel(detail.status) }}</el-descriptions-item>
+        <el-descriptions-item label="创建人">{{ detail.createBy }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detail.createTime }}</el-descriptions-item>
+        <el-descriptions-item label="最近修改">{{ detail.updateTime || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2"><span class="multiline">{{ detail.remark || '—' }}</span></el-descriptions-item>
+      </el-descriptions>
+      <h4>变更记录</h4>
+      <el-alert v-if="changesFailed" title="变更记录加载失败" type="error" :closable="false" show-icon>
+        <el-button link type="primary" @click="getChanges">重试</el-button>
+      </el-alert>
+      <el-table v-else v-loading="changesLoading" :data="changes">
+        <el-table-column label="操作" width="90"><template #default="scope">{{ operationLabel(scope.row.operation) }}</template></el-table-column>
+        <el-table-column label="原因" prop="reason" min-width="220" show-overflow-tooltip />
+        <el-table-column label="操作人" prop="operator" width="120" />
+        <el-table-column label="时间" prop="changeTime" width="180" />
+      </el-table>
+      <pagination v-show="!changesFailed && changesTotal > 0" :total="changesTotal" v-model:page="changesQuery.pageNum" v-model:limit="changesQuery.pageSize" @pagination="getChanges" />
+      <template #footer><el-button @click="detailOpen = false">关闭</el-button></template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup name="ErpProductType">
+import { listProductType, getProductType, listProductTypeChanges, addProductType, updateProductType, changeProductTypeStatus } from '@/api/erp/product-type'
+
+import { onBeforeRouteLeave } from 'vue-router'
+
+const { proxy } = getCurrentInstance()
+const productTypeList = ref([])
+const loading = ref(false)
+const listFailed = ref(false)
+const showSearch = ref(true)
+const total = ref(0)
+const fetching = ref(false)
+const editOpen = ref(false)
+const saving = ref(false)
+const saveFailed = ref(false)
+const statusOpen = ref(false)
+const statusSaving = ref(false)
+const statusFailed = ref(false)
+const detailOpen = ref(false)
+const changesLoading = ref(false)
+const changesFailed = ref(false)
+const changes = ref([])
+const changesTotal = ref(0)
+const detail = ref({})
+const form = ref({})
+const statusForm = ref({})
+const queryParams = reactive({ pageNum: 1, pageSize: 10, typeName: '', status: undefined })
+const changesQuery = reactive({ pageNum: 1, pageSize: 10 })
+let listSequence = 0
+let changesSequence = 0
+let initialForm = ''
+let initialStatusForm = ''
+let discardConfirmation = null
+
+const nonblank = (rule, value, callback) => value?.trim() ? callback() : callback(new Error(rule.message))
+const rules = {
+  typeCode: [{ required: true, validator: nonblank, message: '类型码不能为空', trigger: 'blur' }, { pattern: /^[A-Za-z0-9]+$/, message: '类型码仅允许英文字母和数字', trigger: 'blur' }],
+  typeName: [{ required: true, validator: nonblank, message: '产品类型名称不能为空', trigger: 'blur' }],
+  reason: [{ required: true, validator: nonblank, message: '请填写修改原因', trigger: 'blur' }]
+}
+const statusRules = { reason: [{ required: true, validator: nonblank, message: '请填写启停原因', trigger: 'blur' }] }
+const statusLabel = value => value === '0' ? '启用' : value === '1' ? '停用' : '—'
+const operationLabel = value => ({ CREATE: '新增', UPDATE: '编辑', STATUS: '启停' }[value] || value)
+
+async function getList() {
+  const sequence = ++listSequence
+  loading.value = true
+  listFailed.value = false
+  try {
+    const response = await listProductType({ ...queryParams })
+    if (sequence !== listSequence) return
+    productTypeList.value = response.rows
+    total.value = response.total
+  } catch {
+    if (sequence === listSequence) listFailed.value = true
+  } finally {
+    if (sequence === listSequence) loading.value = false
+  }
+}
+
+function handleQuery() {
+  queryParams.pageNum = 1
+  getList()
+}
+
+function resetQuery() {
+  proxy.resetForm('queryRef')
+  handleQuery()
+}
+
+function handleAdd() {
+  form.value = { typeName: '', typeCode: '', keywords: '', remark: '', requestId: crypto.randomUUID() }
+  initialForm = JSON.stringify(form.value)
+  saveFailed.value = false
+  editOpen.value = true
+  nextTick(() => proxy.$refs.productTypeRef?.clearValidate())
+}
+
+async function handleEdit(row) {
+  if (fetching.value) return
+  fetching.value = true
+  try {
+    const response = await getProductType(row.typeId)
+    form.value = { ...response.data, reason: '' }
+    initialForm = JSON.stringify(form.value)
+    saveFailed.value = false
+    editOpen.value = true
+    nextTick(() => proxy.$refs.productTypeRef?.clearValidate())
+  } catch { /* 请求封装已显示错误，保留当前列表。 */ }
+  finally { fetching.value = false }
+}
+
+function hasUnsavedChanges() {
+  return (editOpen.value && JSON.stringify(form.value) !== initialForm)
+    || (statusOpen.value && JSON.stringify(statusForm.value) !== initialStatusForm)
+}
+
+async function discardChanges() {
+  if (!hasUnsavedChanges()) return true
+  // 关闭按钮与路由同时触发时共用一次确认。
+  if (!discardConfirmation) {
+    discardConfirmation = proxy.$modal.confirm('填写内容尚未保存，确认放弃本次修改？')
+      .then(() => true, () => false).finally(() => { discardConfirmation = null })
+  }
+  return discardConfirmation
+}
+
+async function closeEdit(done) {
+  if (saving.value || statusSaving.value || !await discardChanges()) return
+  editOpen.value = false
+  if (typeof done === 'function') done()
+}
+
+async function closeStatus(done) {
+  if (saving.value || statusSaving.value || !await discardChanges()) return
+  statusOpen.value = false
+  if (typeof done === 'function') done()
+}
+
+onBeforeRouteLeave(async () => {
+  if (saving.value || statusSaving.value || fetching.value || !await discardChanges()) return false
+  editOpen.value = false
+  statusOpen.value = false
+  return true
+})
+
+function beforeUnload(event) {
+  if (saving.value || statusSaving.value || hasUnsavedChanges()) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
+}
+watch([editOpen, statusOpen], ([editing, changingStatus]) => {
+  if (editing || changingStatus) window.addEventListener('beforeunload', beforeUnload)
+  else window.removeEventListener('beforeunload', beforeUnload)
+})
+onUnmounted(() => window.removeEventListener('beforeunload', beforeUnload))
+
+async function submitForm() {
+  if (saving.value) return
+  saving.value = true
+  try {
+    if (!await proxy.$refs.productTypeRef.validate().catch(() => false)) return
+    const data = { typeName: form.value.typeName, typeCode: form.value.typeCode,
+      keywords: form.value.keywords, remark: form.value.remark }
+    if (form.value.typeId) {
+      await updateProductType(form.value.typeId, { ...data, version: form.value.version, reason: form.value.reason })
+    } else {
+      // 失败重试保留同一创建标识，不能每次点击重新生成。
+      await addProductType({ ...data, requestId: form.value.requestId })
+    }
+    editOpen.value = false
+    proxy.$modal.msgSuccess('保存成功')
+    getList()
+  } catch { saveFailed.value = true }
+  finally { saving.value = false }
+}
+
+async function handleStatus(row) {
+  if (fetching.value) return
+  fetching.value = true
+  try {
+    const { data } = await getProductType(row.typeId)
+    statusForm.value = { typeId: data.typeId, typeName: data.typeName, version: data.version, status: data.status === '0' ? '1' : '0', reason: '' }
+    initialStatusForm = JSON.stringify(statusForm.value)
+    statusFailed.value = false
+    statusOpen.value = true
+    nextTick(() => proxy.$refs.statusRef?.clearValidate())
+  } catch { /* 读取失败不打开操作窗口。 */ }
+  finally { fetching.value = false }
+}
+
+async function submitStatus() {
+  if (statusSaving.value) return
+  statusSaving.value = true
+  try {
+    if (!await proxy.$refs.statusRef.validate().catch(() => false)) return
+    await changeProductTypeStatus(statusForm.value.typeId, { status: statusForm.value.status, version: statusForm.value.version, reason: statusForm.value.reason })
+    statusOpen.value = false
+    proxy.$modal.msgSuccess('状态修改成功')
+    getList()
+  } catch { statusFailed.value = true }
+  finally { statusSaving.value = false }
+}
+
+async function handleDetail(row) {
+  if (fetching.value) return
+  fetching.value = true
+  try {
+    const response = await getProductType(row.typeId)
+    detail.value = response.data
+    changesQuery.pageNum = 1
+    changes.value = []
+    changesTotal.value = 0
+    detailOpen.value = true
+    getChanges()
+  } catch { /* 读取失败不展示空详情。 */ }
+  finally { fetching.value = false }
+}
+
+async function getChanges() {
+  const id = detail.value.typeId
+  const sequence = ++changesSequence
+  changesLoading.value = true
+  changesFailed.value = false
+  try {
+    const response = await listProductTypeChanges(id, { ...changesQuery })
+    if (sequence !== changesSequence || id !== detail.value.typeId) return
+    changes.value = response.rows
+    changesTotal.value = response.total
+  } catch {
+    if (sequence === changesSequence) changesFailed.value = true
+  } finally {
+    if (sequence === changesSequence) changesLoading.value = false
+  }
+}
+
+getList()
+</script>
+
+<style scoped>
+.multiline { white-space: pre-wrap; overflow-wrap: anywhere; }
+.status-description { overflow-wrap: anywhere; margin-bottom: 20px; }
+.el-form-item__help { color: var(--el-text-color-secondary); font-size: 12px; line-height: 20px; }
+</style>

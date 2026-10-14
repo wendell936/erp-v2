@@ -108,8 +108,8 @@ class DatabaseMigrationIT
     void emptyDatabaseInitializesAndRepeatedMigrationPreservesData() throws Exception
     {
         Flyway flyway = flyway().load();
-        assertEquals(7, flyway.migrate().migrationsExecuted);
-        assertEquals(7, scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1"));
+        assertEquals(10, flyway.migrate().migrationsExecuted);
+        assertEquals(10, scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1"));
         assertEquals(2, scalar("SELECT COUNT(*) FROM sys_user"));
         assertEquals(11, scalar("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='"
                 + schema + "' AND table_name LIKE 'QRTZ_%'"));
@@ -131,6 +131,51 @@ class DatabaseMigrationIT
     }
 
     @Test
+    void alphanumericTypeUpgradePreservesAllocatedCodesAndEnforcesNewDatabaseRule() throws Exception
+    {
+        assertEquals(9,flyway().target("2026101202").load().migrate().migrationsExecuted);
+        insertTypeWithMainNumber("UPgrade1");
+        execute(url(),"UPDATE erp_sku_number SET last_variant_number=1 WHERE sku_code='UPgrade1-1'");
+        execute(url(),"INSERT INTO erp_sku_number(type_id,main_number_id,sequence_number,sku_code,request_id,create_by,create_time) "
+                +"SELECT type_id,number_id,1,'UPgrade1-1-1','"+UUID.randomUUID()+"','fixture',UTC_TIMESTAMP(3) FROM erp_sku_number WHERE sku_code='UPgrade1-1'");
+        assertEquals(1,flyway().load().migrate().migrationsExecuted);
+        assertEquals(1,scalar("SELECT COUNT(*) FROM erp_product_type WHERE BINARY type_code=BINARY 'UPgrade1' AND last_number=1 AND version=0"));
+        assertEquals(1,scalar("SELECT COUNT(*) FROM erp_sku_number WHERE BINARY sku_code=BINARY 'UPgrade1-1' AND last_variant_number=1"));
+        assertEquals(1,scalar("SELECT COUNT(*) FROM erp_sku_number WHERE BINARY sku_code=BINARY 'UPgrade1-1-1'"));
+        assertThrows(java.sql.SQLException.class,()->execute(url(),"UPDATE erp_product_type SET type_code='UPgrade1-1' WHERE type_code='UPgrade1'"));
+        assertThrows(java.sql.SQLException.class,()->insertTypeWithMainNumber("INVALID-1"));
+        assertEquals(1,scalar("SELECT COUNT(*) FROM erp_product_type"));
+        assertEquals(2,scalar("SELECT COUNT(*) FROM erp_sku_number"));
+        assertEquals(0,flyway().load().migrate().migrationsExecuted);
+    }
+
+    @Test
+    void legacyOverlappingTypesBlockUpgradeWithoutRenumberingOrDroppingOldConstraint() throws Exception
+    {
+        flyway().target("2026101202").load().migrate();
+        insertTypeWithMainNumber("OLD");
+        insertTypeWithMainNumber("OLD-1");
+        assertThrows(FlywayException.class,()->flyway().load().migrate());
+        assertEquals(2,scalar("SELECT COUNT(*) FROM erp_product_type WHERE last_number=1 AND version=0"));
+        assertEquals(2,scalar("SELECT COUNT(*) FROM erp_sku_number WHERE sku_code IN('OLD-1','OLD-1-1')"));
+        assertEquals(9,scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1"));
+        assertEquals(1,scalar("SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='"+schema
+                +"' AND table_name='erp_product_type' AND constraint_name='ck_product_type_code' AND enforced='YES'"));
+        // 原约束仍允许连字符，但拒绝其他非法字符，单条失败ALTER未留下约束空窗。
+        execute(url(),"UPDATE erp_product_type SET type_code='OLD-2' WHERE type_code='OLD-1'");
+        assertThrows(java.sql.SQLException.class,()->execute(url(),"UPDATE erp_product_type SET type_code='OLD_2' WHERE type_code='OLD-2'"));
+        assertEquals(2,scalar("SELECT COUNT(*) FROM erp_sku_number WHERE sku_code IN('OLD-1','OLD-1-1')"));
+    }
+
+    private void insertTypeWithMainNumber(String code) throws Exception
+    {
+        execute(url(),"INSERT INTO erp_product_type(type_code,type_name,last_number,request_id,request_hash,create_by,create_time) VALUES('"
+                +code+"','ERP-TEST migration',1,'"+UUID.randomUUID()+"',REPEAT('0',64),'fixture',UTC_TIMESTAMP(3))");
+        execute(url(),"INSERT INTO erp_sku_number(type_id,sequence_number,sku_code,request_id,create_by,create_time) "
+                +"SELECT type_id,1,CONCAT(type_code,'-1'),'"+UUID.randomUUID()+"','fixture',UTC_TIMESTAMP(3) FROM erp_product_type WHERE type_code='"+code+"'");
+    }
+
+    @Test
     void reviewedExistingBaselineCanBeAdoptedAndUpgraded() throws Exception
     {
         DriverManagerDataSource dataSource = new DriverManagerDataSource(url(), "root", password);
@@ -141,7 +186,7 @@ class DatabaseMigrationIT
         // 仅此测试已知精确基线；部署既有库必须另行备份、比对结构并人工授权。
         Flyway adopted = flyway().baselineVersion("2026041702").load();
         adopted.baseline();
-        assertEquals(5, adopted.migrate().migrationsExecuted);
+        assertEquals(8, adopted.migrate().migrationsExecuted);
         Path increment = migrationDirectory("CREATE TABLE migration_probe(id INT PRIMARY KEY);", null);
         assertEquals(1, flyway(increment).load().migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT COUNT(*) FROM sys_user WHERE nick_name='ERP-TEST-existing'"));
@@ -197,7 +242,7 @@ class DatabaseMigrationIT
         assertEquals(0, flyway().load().migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT COUNT(*) FROM sys_user WHERE nick_name='ERP-TEST-backup'"));
         assertEquals(0, scalar("SELECT COUNT(*) FROM flyway_schema_history WHERE success=0"));
-        Files.writeString(increment.resolve("V2026101201__test_change.sql"),
+        Files.writeString(increment.resolve("V9999010101__test_change.sql"),
                 "CREATE TABLE partial_probe(id INT PRIMARY KEY);");
         assertEquals(2, flyway(increment).load().migrate().migrationsExecuted);
     }
@@ -216,10 +261,10 @@ class DatabaseMigrationIT
     {
         Path directory = temporary.resolve("increment");
         Files.createDirectory(directory);
-        Files.writeString(directory.resolve("V2026101201__test_change.sql"), first);
+        Files.writeString(directory.resolve("V9999010101__test_change.sql"), first);
         if (second != null)
         {
-            Files.writeString(directory.resolve("V2026101202__test_successor.sql"), second);
+            Files.writeString(directory.resolve("V9999010102__test_successor.sql"), second);
         }
         return directory;
     }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.erp.catalog.mapper.SkuNumberMapper">
+    <resultMap id="NumberResult" type="com.ruoyi.erp.catalog.domain.SkuNumber">
+        <id property="numberId" column="number_id"/>
+        <result property="typeId" column="type_id"/>
+        <result property="mainNumberId" column="main_number_id"/>
+        <result property="sequenceNumber" column="sequence_number"/>
+        <result property="lastVariantNumber" column="last_variant_number"/>
+        <result property="skuCode" column="sku_code"/>
+        <result property="requestId" column="request_id"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time" typeHandler="com.ruoyi.erp.persistence.UtcDateTimeTypeHandler"/>
+    </resultMap>
+    <select id="lockType" resultMap="com.ruoyi.erp.catalog.mapper.ProductTypeMapper.ProductTypeResult">
+        SELECT type_id,type_code,status,last_number FROM erp_product_type WHERE type_id=#{typeId} FOR UPDATE
+    </select>
+    <!-- 等待类型锁后必须重新查库，不复用 MyBatis 一级缓存中的空结果。 -->
+    <select id="selectByRequest" resultMap="NumberResult" flushCache="true" useCache="false">
+        SELECT * FROM erp_sku_number WHERE request_id=#{requestId}
+    </select>
+    <select id="selectById" resultMap="NumberResult">
+        SELECT * FROM erp_sku_number WHERE number_id=#{numberId}
+    </select>
+    <select id="lockNumber" resultMap="NumberResult">
+        SELECT * FROM erp_sku_number WHERE number_id=#{numberId} FOR UPDATE
+    </select>
+    <update id="advanceMain">
+        UPDATE erp_product_type SET last_number=last_number+1 WHERE type_id=#{typeId} AND last_number=#{lastNumber}
+    </update>
+    <update id="advanceVariant">
+        UPDATE erp_sku_number SET last_variant_number=last_variant_number+1 WHERE number_id=#{numberId}
+        AND main_number_id IS NULL AND last_variant_number=#{lastNumber}
+    </update>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="numberId">
+        INSERT INTO erp_sku_number(type_id,main_number_id,sequence_number,last_variant_number,sku_code,request_id,create_by,create_time)
+        VALUES(#{typeId},#{mainNumberId},#{sequenceNumber},0,#{skuCode},#{requestId},#{createBy},
+            #{createTime,typeHandler=com.ruoyi.erp.persistence.UtcDateTimeTypeHandler})
+    </insert>
+</mapper>
